@@ -15,8 +15,8 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Implement forgot password
-      console.log("Password reset requested for:", email);
+      // Simulated delay -- email integration to be added
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setSubmitted(true);
     } finally {
       setIsLoading(false);
@@ -30,8 +30,12 @@ export default function ForgotPasswordPage() {
           Check your email
         </h2>
         <p className="text-gray-600 mb-6">
-          We&apos;ve sent password reset instructions to <strong>{email}</strong>
-          . Please check your inbox and follow the link to reset your password.
+          If an account exists for <strong>{email}</strong>, you will receive
+          password reset instructions shortly. Please check your inbox.
+        </p>
+        <p className="text-amber-600 text-sm mb-4 bg-amber-50 p-3 rounded-lg">
+          Note: Email sending is not yet configured. Please contact your
+          administrator to reset your password manually.
         </p>
         <p className="text-gray-600 text-sm mb-6">
           Didn&apos;t receive an email? Check your spam folder or{" "}

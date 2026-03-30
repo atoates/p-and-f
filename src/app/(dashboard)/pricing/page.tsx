@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
+// Plus icon removed -- quote creation handled via Orders workflow
 
 interface PriceSettings {
   id?: string;
@@ -87,10 +87,7 @@ export default function PricingPage() {
           <h1 className="text-3xl font-serif font-bold text-gray-900">Pricing</h1>
           <p className="text-gray-600 mt-1">Configure pricing multipliers and costs</p>
         </div>
-        <Button variant="primary">
-          <Plus size={20} className="mr-2" />
-          New Quote
-        </Button>
+{/* Quote creation is handled via the Orders workflow */}
       </div>
 
       {error && (

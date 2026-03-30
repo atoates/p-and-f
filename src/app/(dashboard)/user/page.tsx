@@ -1,29 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardBody, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
+
+interface SessionUser {
+  name?: string;
+  email?: string;
+}
 
 export default function UserPage() {
   const [showAddUser, setShowAddUser] = useState(false);
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const users = [
-    {
-      id: "1",
-      name: "Sarah Johnson",
-      email: "sarah@floraldesign.com",
-      role: "admin",
-    },
-    {
-      id: "2",
-      name: "Emma Smith",
-      email: "emma@floraldesign.com",
-      role: "manager",
-    },
-  ];
+  // Profile form state
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Add user modal form state
+  const [addUserForm, setAddUserForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "staff",
+  });
+
+  // Fetch current user from session
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const response = await fetch("/api/auth/session");
+        const data = await response.json();
+
+        if (data && data.user) {
+          setCurrentUser(data.user);
+          // Parse name into first and last name
+          const nameParts = (data.user.name || "").split(" ");
+          setFirstName(nameParts[0] || "");
+          setLastName(nameParts.slice(1).join(" ") || "");
+          setEmail(data.user.email || "");
+        }
+      } catch (error) {
+        console.error("Failed to fetch session:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSession();
+  }, []);
+
+  const handleSaveProfile = () => {
+    alert("Profile update coming soon");
+  };
+
+  const handleAddUserSubmit = () => {
+    alert("User invitation coming soon");
+    setShowAddUser(false);
+    setAddUserForm({
+      firstName: "",
+      lastName: "",
+      email: "",
+      role: "staff",
+    });
+  };
 
   return (
     <div>
@@ -41,33 +89,30 @@ export default function UserPage() {
         </Button>
       </div>
 
-      {/* Users List */}
+      {/* Team Members */}
       <Card className="mb-8">
         <CardHeader>
           <h2 className="text-lg font-semibold text-gray-900">Team Members</h2>
         </CardHeader>
         <CardBody>
-          <div className="space-y-4">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{user.name}</p>
-                  <p className="text-sm text-gray-600">{user.email}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium capitalize">
-                    {user.role}
-                  </span>
-                  <button className="text-red-500 hover:text-red-700 transition-colors">
-                    <Trash2 size={20} />
-                  </button>
-                </div>
+          {loading ? (
+            <p className="text-gray-600">Loading...</p>
+          ) : currentUser ? (
+            <div className="space-y-4">
+              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <p className="text-sm text-gray-600 mb-2">You are the current user</p>
+                <p className="font-medium text-gray-900">{currentUser.name || "User"}</p>
+                <p className="text-sm text-gray-600">{currentUser.email}</p>
               </div>
-            ))}
-          </div>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Coming soon: Full team member management and invitations will be available here.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-600">Unable to load user information</p>
+          )}
         </CardBody>
       </Card>
 
@@ -78,16 +123,46 @@ export default function UserPage() {
         </CardHeader>
         <CardBody className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input label="First Name" value="Sarah" />
-            <Input label="Last Name" value="Johnson" />
+            <Input
+              label="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+            <Input
+              label="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
           </div>
-          <Input label="Email" type="email" value="sarah@floraldesign.com" />
-          <Input label="Current Password" type="password" />
-          <Input label="New Password" type="password" />
-          <Input label="Confirm Password" type="password" />
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            label="Current Password"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+          <Input
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <Input
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
         </CardBody>
         <CardFooter>
-          <Button variant="primary">Save changes</Button>
+          <Button variant="primary" onClick={handleSaveProfile}>
+            Save changes
+          </Button>
         </CardFooter>
       </Card>
 
@@ -99,11 +174,37 @@ export default function UserPage() {
               <h2 className="text-lg font-semibold text-gray-900">Add Team Member</h2>
             </CardHeader>
             <CardBody className="space-y-4">
-              <Input label="First Name" placeholder="John" />
-              <Input label="Last Name" placeholder="Doe" />
-              <Input label="Email" type="email" placeholder="john@example.com" />
+              <Input
+                label="First Name"
+                placeholder="John"
+                value={addUserForm.firstName}
+                onChange={(e) =>
+                  setAddUserForm({ ...addUserForm, firstName: e.target.value })
+                }
+              />
+              <Input
+                label="Last Name"
+                placeholder="Doe"
+                value={addUserForm.lastName}
+                onChange={(e) =>
+                  setAddUserForm({ ...addUserForm, lastName: e.target.value })
+                }
+              />
+              <Input
+                label="Email"
+                type="email"
+                placeholder="john@example.com"
+                value={addUserForm.email}
+                onChange={(e) =>
+                  setAddUserForm({ ...addUserForm, email: e.target.value })
+                }
+              />
               <Select
                 label="Role"
+                value={addUserForm.role}
+                onChange={(e) =>
+                  setAddUserForm({ ...addUserForm, role: e.target.value })
+                }
                 options={[
                   { value: "staff", label: "Staff" },
                   { value: "manager", label: "Manager" },
@@ -115,7 +216,9 @@ export default function UserPage() {
               <Button variant="outline" onClick={() => setShowAddUser(false)}>
                 Cancel
               </Button>
-              <Button variant="primary">Add User</Button>
+              <Button variant="primary" onClick={handleAddUserSubmit}>
+                Add User
+              </Button>
             </CardFooter>
           </Card>
         </div>

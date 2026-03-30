@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardBody } from "@/components/ui/card";
+import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Plus, Download } from "lucide-react";
 import { ColDef } from "ag-grid-community";
 import { DataGrid } from "@/components/ui/data-grid";
@@ -24,11 +25,40 @@ interface Invoice {
   };
 }
 
+interface Order {
+  id: string;
+  orderNumber: string;
+  enquiry?: {
+    clientName: string;
+  };
+}
+
+interface CreateInvoiceFormData {
+  orderId: string;
+  invoiceNumber: string;
+  totalAmount: string;
+  dueDate: string;
+  status: string;
+}
+
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<CreateInvoiceFormData>({
+    orderId: "",
+    invoiceNumber: "",
+    totalAmount: "",
+    dueDate: "",
+    status: "draft",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -49,6 +79,96 @@ export default function InvoicesPage() {
 
     fetchInvoices();
   }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setOrdersLoading(true);
+      setOrdersError(null);
+      const response = await fetch("/api/orders");
+      if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+      }
+      const data = await response.json();
+      setOrders(data);
+    } catch (err) {
+      setOrdersError(err instanceof Error ? err.message : "Failed to fetch orders");
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const handleOpenCreateModal = () => {
+    setShowCreateModal(true);
+    setSubmitError(null);
+    setFormData({
+      orderId: "",
+      invoiceNumber: "",
+      totalAmount: "",
+      dueDate: "",
+      status: "draft",
+    });
+    fetchOrders();
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setFormData({
+      orderId: "",
+      invoiceNumber: "",
+      totalAmount: "",
+      dueDate: "",
+      status: "draft",
+    });
+    setSubmitError(null);
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmitCreateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.orderId || !formData.invoiceNumber || !formData.totalAmount || !formData.dueDate) {
+      setSubmitError("All fields are required");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setSubmitError(null);
+      const response = await fetch("/api/invoices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: formData.orderId,
+          invoiceNumber: formData.invoiceNumber,
+          totalAmount: parseFloat(formData.totalAmount),
+          dueDate: formData.dueDate,
+          status: formData.status,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to create invoice");
+      }
+
+      const newInvoice = await response.json();
+      setInvoices((prev) => [newInvoice, ...prev]);
+      handleCloseCreateModal();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleDownload = async (id: string) => {
     try {
@@ -150,7 +270,7 @@ export default function InvoicesPage() {
           <h1 className="text-3xl font-serif font-bold text-gray-900">Invoices</h1>
           <p className="text-gray-600 mt-1">Create and manage invoices</p>
         </div>
-        <Button variant="primary">
+        <Button variant="primary" onClick={handleOpenCreateModal}>
           <Plus size={20} className="mr-2" />
           New Invoice
         </Button>
@@ -175,6 +295,130 @@ export default function InvoicesPage() {
           />
         </CardBody>
       </Card>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <h2 className="text-xl font-serif font-bold text-gray-900">Create Invoice</h2>
+            </CardHeader>
+
+            <CardBody className="space-y-4">
+              {submitError && (
+                <div className="bg-red-50 border border-red-200 rounded p-3">
+                  <p className="text-red-800 text-sm">{submitError}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitCreateInvoice} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Order
+                  </label>
+                  {ordersLoading ? (
+                    <div className="text-sm text-gray-600">Loading orders...</div>
+                  ) : ordersError ? (
+                    <div className="text-sm text-red-600">{ordersError}</div>
+                  ) : (
+                    <select
+                      name="orderId"
+                      value={formData.orderId}
+                      onChange={handleFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select an order</option>
+                      {orders.map((order) => (
+                        <option key={order.id} value={order.id}>
+                          {order.orderNumber} {order.enquiry?.clientName ? `- ${order.enquiry.clientName}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Invoice Number
+                  </label>
+                  <Input
+                    type="text"
+                    name="invoiceNumber"
+                    value={formData.invoiceNumber}
+                    onChange={handleFormChange}
+                    placeholder="e.g., INV-001"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Total Amount
+                  </label>
+                  <Input
+                    type="number"
+                    name="totalAmount"
+                    value={formData.totalAmount}
+                    onChange={handleFormChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Due Date
+                  </label>
+                  <Input
+                    type="date"
+                    name="dueDate"
+                    value={formData.dueDate}
+                    onChange={handleFormChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="sent">Sent</option>
+                    <option value="paid">Paid</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </form>
+            </CardBody>
+
+            <CardFooter className="flex gap-3">
+              <Button
+                variant="secondary"
+                onClick={handleCloseCreateModal}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSubmitCreateInvoice}
+                disabled={submitting}
+              >
+                {submitting ? "Creating..." : "Create Invoice"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

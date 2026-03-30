@@ -52,8 +52,8 @@ export default function SubscriptionPage() {
           </div>
         </CardBody>
         <CardFooter className="space-x-4">
-          <Button variant="outline">Change Plan</Button>
-          <Button variant="outline">Cancel Subscription</Button>
+          <Button variant="outline" onClick={() => alert("Plan management will be available once billing integration is set up.")}>Change Plan</Button>
+          <Button variant="outline" onClick={() => alert("Subscription cancellation will be available once billing integration is set up.")}>Cancel Subscription</Button>
         </CardFooter>
       </Card>
 
@@ -97,7 +97,10 @@ export default function SubscriptionPage() {
                     <Badge variant="success">Paid</Badge>
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    <button className="text-primary-green hover:text-light-green font-medium">
+                    <button
+                      onClick={() => alert("Invoice downloads will be available once billing integration is set up.")}
+                      className="text-primary-green hover:text-light-green font-medium"
+                    >
                       Download
                     </button>
                   </td>

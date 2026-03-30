@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardBody } from "@/components/ui/card";
+import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Plus, Download } from "lucide-react";
 import { ColDef } from "ag-grid-community";
 import { DataGrid } from "@/components/ui/data-grid";
@@ -21,11 +21,24 @@ interface Proposal {
   };
 }
 
+interface Order {
+  id: string;
+  enquiry?: {
+    clientName: string;
+  };
+}
+
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [formData, setFormData] = useState({ orderId: "", status: "draft" });
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -46,6 +59,78 @@ export default function ProposalsPage() {
 
     fetchProposals();
   }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setOrdersLoading(true);
+      const response = await fetch("/api/orders");
+      if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+      }
+      const data = await response.json();
+      setOrders(data);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setFormError("Failed to load orders");
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const handleOpenModal = () => {
+    setFormError(null);
+    setFormData({ orderId: "", status: "draft" });
+    setIsModalOpen(true);
+    fetchOrders();
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFormError(null);
+    setFormData({ orderId: "", status: "draft" });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.orderId) {
+      setFormError("Please select an order");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setFormError(null);
+
+      const response = await fetch("/api/proposals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: formData.orderId,
+          status: formData.status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create proposal");
+      }
+
+      // Refresh proposals list
+      const proposalsResponse = await fetch("/api/proposals");
+      if (proposalsResponse.ok) {
+        const data = await proposalsResponse.json();
+        setProposals(data);
+      }
+
+      handleCloseModal();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleDownload = async (id: string) => {
     try {
@@ -143,7 +228,7 @@ export default function ProposalsPage() {
           <h1 className="text-3xl font-serif font-bold text-gray-900">Proposals</h1>
           <p className="text-gray-600 mt-1">Create and send professional proposals</p>
         </div>
-        <Button variant="primary">
+        <Button variant="primary" onClick={handleOpenModal}>
           <Plus size={20} className="mr-2" />
           New Proposal
         </Button>
@@ -168,6 +253,81 @@ export default function ProposalsPage() {
           />
         </CardBody>
       </Card>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <h2 className="text-xl font-serif font-bold text-gray-900">Create New Proposal</h2>
+            </CardHeader>
+
+            <form onSubmit={handleSubmit}>
+              <CardBody className="space-y-4">
+                {formError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+                    {formError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Order
+                  </label>
+                  <select
+                    value={formData.orderId}
+                    onChange={(e) => setFormData({ ...formData, orderId: e.target.value })}
+                    disabled={ordersLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    <option value="">
+                      {ordersLoading ? "Loading orders..." : "Select an order"}
+                    </option>
+                    {orders.map((order) => (
+                      <option key={order.id} value={order.id}>
+                        {order.enquiry?.clientName || "Unknown Client"} ({order.id.slice(0, 8)}...)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="sent">Sent</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="declined">Declined</option>
+                  </select>
+                </div>
+              </CardBody>
+
+              <CardFooter className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCloseModal}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={submitting || ordersLoading}
+                >
+                  {submitting ? "Creating..." : "Create Proposal"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

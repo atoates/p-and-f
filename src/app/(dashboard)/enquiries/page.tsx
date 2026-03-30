@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Archive, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { EnquiryModal } from "@/components/enquiries/enquiry-modal";
 
 interface Enquiry {
@@ -204,15 +204,7 @@ export default function EnquiriesPage() {
               <option value="Order">Order</option>
             </select>
 
-            <Button variant="outline">
-              <Filter size={20} className="mr-2" />
-              More filters
-            </Button>
-
-            <Button variant="outline">
-              <Archive size={20} className="mr-2" />
-              Archive
-            </Button>
+{/* Advanced filters and archive features coming in a future release */}
           </div>
         </CardBody>
       </Card>

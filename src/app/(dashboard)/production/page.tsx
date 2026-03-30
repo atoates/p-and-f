@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardBody } from "@/components/ui/card";
+import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 
@@ -21,10 +22,27 @@ interface ProductionSchedule {
   };
 }
 
+interface Order {
+  id: string;
+  enquiry?: {
+    clientName: string;
+  };
+}
+
 export default function ProductionPage() {
   const [schedules, setSchedules] = useState<ProductionSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    orderId: "",
+    eventDate: "",
+    notes: "",
+    status: "not_started",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -45,6 +63,86 @@ export default function ProductionPage() {
 
     fetchSchedules();
   }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      const fetchOrders = async () => {
+        try {
+          setOrdersLoading(true);
+          const response = await fetch("/api/orders");
+          if (!response.ok) {
+            throw new Error("Failed to fetch orders");
+          }
+          const data = await response.json();
+          setOrders(data);
+        } catch (err) {
+          console.error("Error fetching orders:", err);
+        } finally {
+          setOrdersLoading(false);
+        }
+      };
+
+      fetchOrders();
+    }
+  }, [isModalOpen]);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+    setFormData({
+      orderId: "",
+      eventDate: "",
+      notes: "",
+      status: "not_started",
+    });
+    setError(null);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFormData({
+      orderId: "",
+      eventDate: "",
+      notes: "",
+      status: "not_started",
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.orderId || !formData.eventDate) {
+      setError("Order and event date are required");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch("/api/production", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: formData.orderId,
+          eventDate: formData.eventDate,
+          notes: formData.notes,
+          status: formData.status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create production schedule");
+      }
+
+      const newSchedule = await response.json();
+      setSchedules([...schedules, newSchedule]);
+      handleCloseModal();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const statusColors: Record<string, "primary" | "success" | "warning" | "danger" | "secondary"> = {
     not_started: "secondary",
@@ -83,7 +181,7 @@ export default function ProductionPage() {
           <h1 className="text-3xl font-serif font-bold text-gray-900">Production</h1>
           <p className="text-gray-600 mt-1">Schedule and manage production</p>
         </div>
-        <Button variant="primary">
+        <Button variant="primary" onClick={handleOpenModal}>
           <Plus size={20} className="mr-2" />
           New Schedule
         </Button>
@@ -171,6 +269,112 @@ export default function ProductionPage() {
           )}
         </div>
       </Card>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <h2 className="text-xl font-semibold text-gray-900">Create Production Schedule</h2>
+            </CardHeader>
+            <form onSubmit={handleSubmit}>
+              <CardBody className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                    {error}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Order
+                  </label>
+                  <select
+                    value={formData.orderId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, orderId: e.target.value })
+                    }
+                    disabled={ordersLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#1B4332]"
+                  >
+                    <option value="">
+                      {ordersLoading ? "Loading orders..." : "Select an order"}
+                    </option>
+                    {orders.map((order) => (
+                      <option key={order.id} value={order.id}>
+                        {order.enquiry?.clientName || `Order ${order.id}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Event Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={formData.eventDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, eventDate: e.target.value })
+                    }
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="Add notes for this schedule"
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#1B4332]"
+                  >
+                    <option value="not_started">Not Started</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="in_preparation">In Preparation</option>
+                    <option value="completed">Completed</option>
+                    <option value="on_hold">On Hold</option>
+                  </select>
+                </div>
+              </CardBody>
+              <CardFooter className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCloseModal}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating..." : "Create Schedule"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
