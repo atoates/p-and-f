@@ -75,9 +75,9 @@ export default function UserPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600 mt-1">Manage team members and permissions</p>
         </div>
         <Button
@@ -122,7 +122,7 @@ export default function UserPage() {
           <h2 className="text-lg font-semibold text-gray-900">Your Profile</h2>
         </CardHeader>
         <CardBody className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="First Name"
               value={firstName}

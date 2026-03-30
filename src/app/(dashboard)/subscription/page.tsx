@@ -9,7 +9,7 @@ export default function SubscriptionPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Subscription & Billing</h1>
+        <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Subscription & Billing</h1>
         <p className="text-gray-600 mt-1">Manage your subscription and billing</p>
       </div>
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Flower, LogOut } from "lucide-react";
+import { Flower, LogOut, Menu, X } from "lucide-react";
 import {
   FileText,
   ShoppingCart,
@@ -18,6 +18,7 @@ import {
   CreditCard,
   Library,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const navigationItems = [
   { name: "Enquiries", href: "/enquiries", icon: FileText },
@@ -39,21 +40,47 @@ const settingsItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile nav when route changes
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile nav is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/" });
   };
 
-  return (
-    <aside className="w-64 bg-primary-green text-white h-screen fixed left-0 top-0 overflow-y-auto flex flex-col">
-      <div className="p-6 border-b border-light-green">
+  const navContent = (
+    <>
+      <div className="p-6 border-b border-light-green flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">
           <Flower size={24} />
           <span>Petal & Prosper</span>
         </Link>
+        {/* Close button on mobile */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden p-1 text-white hover:text-soft-cream"
+          aria-label="Close menu"
+        >
+          <X size={24} />
+        </button>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -104,6 +131,41 @@ export function Sidebar() {
           <span>Logout</span>
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-primary-green text-white rounded-lg shadow-lg"
+        aria-label="Open menu"
+      >
+        <Menu size={24} />
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile sidebar drawer */}
+      <aside
+        className={`lg:hidden fixed left-0 top-0 w-72 bg-primary-green text-white h-screen z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {navContent}
+      </aside>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 bg-primary-green text-white h-screen fixed left-0 top-0 overflow-y-auto flex-col">
+        {navContent}
+      </aside>
+    </>
   );
 }

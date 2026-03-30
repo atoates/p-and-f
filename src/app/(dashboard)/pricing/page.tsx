@@ -82,9 +82,9 @@ export default function PricingPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-gray-900">Pricing</h1>
+          <h1 className="text-xl sm:text-3xl font-serif font-bold text-gray-900">Pricing</h1>
           <p className="text-gray-600 mt-1">Configure pricing multipliers and costs</p>
         </div>
 {/* Quote creation is handled via the Orders workflow */}
@@ -117,7 +117,7 @@ export default function PricingPage() {
         </CardHeader>
 
         <CardBody className="space-y-4">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <Input
               label="Markup Multiple"
               type="number"
