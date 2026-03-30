@@ -13,15 +13,48 @@ import {
   ArrowRight,
   Flower,
 } from "lucide-react";
+import {
+  FloralLeaf,
+  FloralPetal,
+  FloralBranch,
+  FloralRose,
+  FloralDivider,
+} from "@/components/marketing/floral-elements";
 
 export default function Home() {
   return (
     <>
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+          <Link href="/" className="flex items-center gap-2 font-serif font-bold text-xl text-[#1B4332]">
+            <Flower className="text-[#D4A0A7]" size={24} />
+            Petal & Prosper
+          </Link>
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-sm text-gray-600 hover:text-[#2D6A4F] transition-colors">Features</a>
+            <a href="#pricing" className="text-sm text-gray-600 hover:text-[#2D6A4F] transition-colors">Pricing</a>
+            <a href="#faqs" className="text-sm text-gray-600 hover:text-[#2D6A4F] transition-colors">FAQs</a>
+            <Link href="/login" className="text-sm font-medium text-[#2D6A4F] hover:text-[#1B4332] transition-colors">
+              Sign in
+            </Link>
+            <Link href="/signup">
+              <Button variant="primary" size="sm" className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white">
+                Start free trial
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <section className="relative pt-32 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br from-[#FFF8F0] via-[#FAF3E0] to-[#E8B4B8]">
-        {/* Decorative botanical elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 blur-3xl bg-[#2D6A4F]"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full opacity-10 blur-3xl bg-[#C9A96E]"></div>
+      <section className="relative pt-32 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br from-[#FFF8F0] via-[#FAF3E0] to-[#f5e0e3]">
+        {/* Botanical decorative elements */}
+        <FloralBranch className="absolute top-0 left-0 w-48 md:w-72 h-auto text-[#2D6A4F] opacity-60 -translate-x-8" />
+        <FloralBranch className="absolute top-0 right-0 w-48 md:w-72 h-auto text-[#D4A0A7] opacity-50 translate-x-8 scale-x-[-1]" />
+        <FloralRose className="absolute bottom-12 left-8 w-32 md:w-48 h-auto text-[#E8B4B8]" />
+        <FloralPetal className="absolute top-24 right-16 w-24 md:w-40 h-auto text-[#C9A96E] opacity-40" />
+        <FloralLeaf className="absolute bottom-0 right-24 w-20 md:w-32 h-auto text-[#2D6A4F] opacity-40 rotate-12" />
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <div className="mb-8 inline-flex items-center gap-3 px-5 py-3 bg-white bg-opacity-70 backdrop-blur-sm rounded-full border border-[#2D6A4F] border-opacity-20 shadow-sm hover:shadow-md transition-shadow">
@@ -97,9 +130,14 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
+      <section id="features" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
+        {/* Subtle floral accents */}
+        <FloralLeaf className="absolute top-8 right-0 w-24 h-auto text-[#E8B4B8] opacity-30 rotate-45" />
+        <FloralPetal className="absolute bottom-8 left-0 w-32 h-auto text-[#2D6A4F] opacity-20 -rotate-12" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="text-center mb-6">
+            <FloralDivider className="w-64 h-auto mx-auto text-[#C9A96E] mb-6" />
             <h2 className="text-5xl sm:text-5xl font-serif font-bold text-[#1B4332] mb-4">
               Powerful Core Features
             </h2>
@@ -108,7 +146,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
             {[
               {
                 icon: FileText,
@@ -172,9 +210,13 @@ export default function Home() {
       </section>
 
       {/* Dashboard Preview Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#FAF3E0] to-white">
-        <div className="max-w-7xl mx-auto">
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#FAF3E0] to-white overflow-hidden">
+        <FloralRose className="absolute top-0 right-0 w-40 h-auto text-[#D4A0A7] opacity-30" />
+        <FloralLeaf className="absolute bottom-0 left-4 w-28 h-auto text-[#2D6A4F] opacity-25 -rotate-12" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
+            <FloralDivider className="w-64 h-auto mx-auto text-[#2D6A4F] mb-6" />
             <h2 className="text-5xl font-serif font-bold text-[#1B4332] mb-4">
               Everything at a glance
             </h2>
@@ -184,12 +226,17 @@ export default function Home() {
           </div>
 
           {/* Mock Dashboard */}
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 transform hover:scale-105 transition-transform duration-500 origin-center" style={{ perspective: "1200px" }}>
+          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 transform hover:scale-[1.02] transition-transform duration-500 origin-center">
             <div className="p-8 bg-gradient-to-b from-white to-gray-50">
               {/* Dashboard Header */}
-              <div className="mb-8">
-                <h3 className="text-2xl font-serif font-bold text-[#1B4332] mb-2">Orders Dashboard</h3>
-                <p className="text-gray-600">Active orders and enquiries</p>
+              <div className="mb-8 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2D6A4F] to-[#1B4332] flex items-center justify-center">
+                  <Flower className="text-white" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-serif font-bold text-[#1B4332]">Orders Dashboard</h3>
+                  <p className="text-gray-600 text-sm">Active orders and enquiries</p>
+                </div>
               </div>
 
               {/* Dashboard Table */}
@@ -206,11 +253,11 @@ export default function Home() {
                   </thead>
                   <tbody>
                     {[
-                      { client: "Sarah & James", event: "Wedding", status: "In Progress", date: "15 Jun 2024", total: "£2,450" },
-                      { client: "Emma Thompson", event: "Corporate Event", status: "Proposal Sent", date: "22 May 2024", total: "£890" },
-                      { client: "The Smith Family", event: "Anniversary", status: "Confirmed", date: "10 Jul 2024", total: "£650" },
-                      { client: "Rose & Lewis", event: "Wedding", status: "Enquiry", date: "08 Aug 2024", total: "—" },
-                      { client: "Charity Gala", event: "Corporate", status: "Invoiced", date: "30 Apr 2024", total: "£3,200" },
+                      { client: "Sarah & James", event: "Wedding", status: "In Progress", date: "15 Jun 2026", total: "£2,450" },
+                      { client: "Emma Thompson", event: "Corporate Event", status: "Proposal Sent", date: "22 May 2026", total: "£890" },
+                      { client: "The Smith Family", event: "Anniversary", status: "Confirmed", date: "10 Jul 2026", total: "£650" },
+                      { client: "Rose & Lewis", event: "Wedding", status: "Enquiry", date: "08 Aug 2026", total: "TBC" },
+                      { client: "Charity Gala", event: "Corporate", status: "Invoiced", date: "30 Apr 2026", total: "£3,200" },
                     ].map((row, idx) => (
                       <tr key={idx} className="border-b border-gray-100 hover:bg-[#FFF8F0] transition-colors">
                         <td className="py-4 px-4 text-gray-900 font-medium text-sm">{row.client}</td>
@@ -245,9 +292,13 @@ export default function Home() {
       </section>
 
       {/* Benefits Section */}
-      <section id="benefits" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FFF8F0] border-y border-gray-200">
-        <div className="max-w-7xl mx-auto">
+      <section id="benefits" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-[#FFF8F0] border-y border-gray-200 overflow-hidden">
+        <FloralBranch className="absolute top-0 right-0 w-56 h-auto text-[#E8B4B8] opacity-30 scale-x-[-1]" />
+        <FloralPetal className="absolute bottom-12 left-4 w-28 h-auto text-[#C9A96E] opacity-25" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
+            <FloralDivider className="w-64 h-auto mx-auto text-[#D4A0A7] mb-6" />
             <h2 className="text-5xl font-serif font-bold text-[#1B4332] mb-4">
               Why florists choose Petal & Prosper
             </h2>
@@ -277,9 +328,13 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-5xl mx-auto">
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
+        <FloralLeaf className="absolute top-12 left-0 w-20 h-auto text-[#2D6A4F] opacity-20 -rotate-45" />
+        <FloralRose className="absolute bottom-12 right-0 w-32 h-auto text-[#E8B4B8] opacity-20" />
+
+        <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center mb-16">
+            <FloralDivider className="w-64 h-auto mx-auto text-[#2D6A4F] mb-6" />
             <h2 className="text-5xl font-serif font-bold text-[#1B4332] mb-4">
               How it works
             </h2>
@@ -326,9 +381,13 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-[#FAF3E0]">
-        <div className="max-w-7xl mx-auto">
+      <section id="pricing" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-[#FAF3E0] overflow-hidden">
+        <FloralBranch className="absolute top-0 left-0 w-48 h-auto text-[#2D6A4F] opacity-20" />
+        <FloralPetal className="absolute bottom-0 right-0 w-36 h-auto text-[#D4A0A7] opacity-20 rotate-45" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
+            <FloralDivider className="w-64 h-auto mx-auto text-[#C9A96E] mb-6" />
             <h2 className="text-5xl font-serif font-bold text-[#1B4332] mb-4">
               Simple, Transparent Pricing
             </h2>
@@ -462,9 +521,13 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#FFF8F0]">
-        <div className="max-w-6xl mx-auto">
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-[#FFF8F0] overflow-hidden">
+        <FloralRose className="absolute top-8 left-4 w-36 h-auto text-[#E8B4B8] opacity-25" />
+        <FloralLeaf className="absolute bottom-8 right-8 w-24 h-auto text-[#2D6A4F] opacity-25 rotate-180" />
+
+        <div className="max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16">
+            <FloralDivider className="w-64 h-auto mx-auto text-[#D4A0A7] mb-6" />
             <h2 className="text-5xl font-serif font-bold text-[#1B4332] mb-4">
               Loved by UK florists
             </h2>
@@ -505,7 +568,7 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-                <p className="text-gray-700 mb-6 italic leading-relaxed">"{testimonial.quote}"</p>
+                <p className="text-gray-700 mb-6 italic leading-relaxed">&ldquo;{testimonial.quote}&rdquo;</p>
                 <div>
                   <p className="font-serif font-bold text-[#1B4332]">{testimonial.author}</p>
                   <p className="text-sm text-gray-600">{testimonial.company}</p>
@@ -517,9 +580,12 @@ export default function Home() {
       </section>
 
       {/* FAQs Section */}
-      <section id="faqs" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-3xl mx-auto">
+      <section id="faqs" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
+        <FloralPetal className="absolute top-16 right-0 w-28 h-auto text-[#C9A96E] opacity-15" />
+
+        <div className="max-w-3xl mx-auto relative z-10">
           <div className="text-center mb-16">
+            <FloralDivider className="w-64 h-auto mx-auto text-[#2D6A4F] mb-6" />
             <h2 className="text-5xl font-serif font-bold text-[#1B4332] mb-4">
               Frequently Asked Questions
             </h2>
@@ -581,11 +647,15 @@ export default function Home() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#2D6A4F] to-[#1B4332] text-white relative overflow-hidden">
-        {/* Decorative element */}
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 blur-3xl bg-[#C9A96E]"></div>
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#2D6A4F] to-[#1B4332] text-white overflow-hidden">
+        {/* Floral accents on dark background */}
+        <FloralBranch className="absolute top-0 left-0 w-64 h-auto text-white opacity-[0.06]" />
+        <FloralBranch className="absolute bottom-0 right-0 w-64 h-auto text-white opacity-[0.06] scale-x-[-1] rotate-180" />
+        <FloralRose className="absolute top-8 right-16 w-40 h-auto text-[#C9A96E] opacity-[0.08]" />
+        <FloralPetal className="absolute bottom-8 left-16 w-32 h-auto text-white opacity-[0.06]" />
 
         <div className="max-w-3xl mx-auto text-center relative z-10">
+          <FloralDivider className="w-64 h-auto mx-auto text-[#C9A96E] opacity-40 mb-8" />
           <h2 className="text-5xl font-serif font-bold mb-6">
             Ready to streamline your floristry business?
           </h2>
@@ -604,6 +674,49 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-[#1B4332] text-gray-300 py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-12 mb-12">
+            <div>
+              <Link href="/" className="flex items-center gap-2 font-serif font-bold text-xl text-white mb-4">
+                <Flower className="text-[#D4A0A7]" size={22} />
+                Petal & Prosper
+              </Link>
+              <p className="text-sm leading-relaxed text-gray-400">
+                Simple and powerful floristry business management software. Built by florists, for florists.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#faqs" className="hover:text-white transition-colors">FAQs</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-white mb-4">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-white mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-700 pt-8 text-center text-sm text-gray-500">
+            <p>&copy; 2026 Petal & Prosper. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </>
   );
 }
