@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  @apply border-gray-200;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #faf8f6;
+}
+
+/* AG Grid Custom Styles */
+.ag-theme-quartz {
+  --ag-background-color: #ffffff;
+  --ag-foreground-color: #2d5a3d;
+  --ag-borders-side-color: #e5e7eb;
+  --ag-border-color: #d1d5db;
+  --ag-header-background-color: #f3f4f6;
+  --ag-header-foreground-color: #1f2937;
+  --ag-row-hover-color: #f0fdf4;
+  --ag-odd-row-background-color: transparent;
+  --ag-selected-row-background-color: #dbeafe;
+}
