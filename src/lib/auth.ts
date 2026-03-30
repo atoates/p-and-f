@@ -21,38 +21,55 @@ export const authConfig = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Coerce to strings -- server-side signIn can pass values as unknown types
-        const raw = {
-          email: String(credentials?.email ?? ""),
-          password: String(credentials?.password ?? ""),
-        };
-        const parsed = credentialsSchema.safeParse(raw);
+        try {
+          console.log("[auth] authorize called, credentials keys:", Object.keys(credentials || {}));
 
-        if (!parsed.success) {
+          // Coerce to strings -- server-side signIn can pass values as unknown types
+          const raw = {
+            email: String(credentials?.email ?? ""),
+            password: String(credentials?.password ?? ""),
+          };
+          console.log("[auth] parsed email:", raw.email, "password length:", raw.password.length);
+
+          const parsed = credentialsSchema.safeParse(raw);
+
+          if (!parsed.success) {
+            console.log("[auth] zod validation failed:", parsed.error.message);
+            return null;
+          }
+
+          console.log("[auth] querying DB for user...");
+          const user = await db.query.users.findFirst({
+            where: eq(users.email, parsed.data.email),
+          });
+          console.log("[auth] user found:", !!user, user ? "has password:" : "", user ? !!user.password : "");
+
+          if (!user || !user.password) {
+            console.log("[auth] no user or no password");
+            return null;
+          }
+
+          console.log("[auth] comparing passwords...");
+          const passwordMatch = await compare(parsed.data.password, user.password);
+          console.log("[auth] password match:", passwordMatch);
+
+          if (!passwordMatch) {
+            console.log("[auth] password mismatch");
+            return null;
+          }
+
+          console.log("[auth] login success for:", user.email);
+          return {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`.trim(),
+            role: user.role,
+            companyId: user.companyId,
+          };
+        } catch (err) {
+          console.error("[auth] authorize THREW an error:", err);
           return null;
         }
-
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, parsed.data.email),
-        });
-
-        if (!user || !user.password) {
-          return null;
-        }
-
-        const passwordMatch = await compare(parsed.data.password, user.password);
-
-        if (!passwordMatch) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`.trim(),
-          role: user.role,
-          companyId: user.companyId,
-        };
       },
     }),
   ],
