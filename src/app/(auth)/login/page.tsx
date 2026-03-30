@@ -21,7 +21,7 @@ export default function LoginPage() {
     try {
       // TODO: Implement login with NextAuth
       console.log("Login attempt:", { email, password });
-      router.push("/dashboard/enquiries");
+      router.push("/enquiries");
     } catch (err) {
       setError("Invalid email or password");
     } finally {
