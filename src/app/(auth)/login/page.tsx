@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { authenticate } from "./actions";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -20,22 +18,14 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
+      const result = await authenticate(email, password);
       if (result?.error) {
-        setError("Invalid email or password");
-      } else {
-        router.push("/enquiries");
-        router.refresh();
+        setError(result.error);
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
+      // If no error, the server action handles the redirect
+    } catch {
+      // Redirect errors are expected on success -- Next.js handles them
     }
   };
 
