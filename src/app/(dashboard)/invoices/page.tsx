@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
+import { ColDef } from "ag-grid-community";
+import { DataGrid } from "@/components/ui/data-grid";
+import { StatusBadgeRenderer, CurrencyRenderer, DateRenderer } from "@/components/ui/grid-renderers";
 
 interface Invoice {
   id: string;
@@ -26,6 +28,7 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -47,26 +50,98 @@ export default function InvoicesPage() {
     fetchInvoices();
   }, []);
 
-  const statusColors: Record<string, "primary" | "success" | "warning" | "danger" | "secondary"> = {
-    draft: "secondary",
-    sent: "warning",
-    paid: "success",
-    overdue: "danger",
-    cancelled: "danger",
+  const handleDownload = async (id: string) => {
+    try {
+      setDownloadingId(id);
+      const response = await fetch(`/api/invoices/${id}/pdf`);
+      if (!response.ok) {
+        throw new Error("Failed to download PDF");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-${id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Error downloading PDF:", err);
+      alert("Failed to download invoice PDF");
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatPrice = (price: string) => {
-    return `£${parseFloat(price).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
+  const columnDefs: ColDef[] = [
+    {
+      field: "invoiceNumber",
+      headerName: "Invoice Number",
+      width: 150,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "order.enquiry.clientName",
+      headerName: "Client",
+      width: 180,
+      sortable: true,
+      filter: true,
+      valueGetter: (params) => params.data?.order?.enquiry?.clientName || "Unknown",
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 120,
+      cellRenderer: StatusBadgeRenderer,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "totalAmount",
+      headerName: "Total Amount",
+      width: 130,
+      cellRenderer: CurrencyRenderer,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "dueDate",
+      headerName: "Due Date",
+      width: 130,
+      cellRenderer: DateRenderer,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "paidAt",
+      headerName: "Paid Date",
+      width: 130,
+      cellRenderer: DateRenderer,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "id",
+      headerName: "Actions",
+      width: 100,
+      sortable: false,
+      filter: false,
+      cellRenderer: (params: any) => (
+        <div className="flex items-center justify-center h-full">
+          <button
+            onClick={() => handleDownload(params.value)}
+            disabled={downloadingId === params.value}
+            className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 disabled:opacity-50"
+            title="Download PDF"
+          >
+            <Download size={18} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -90,77 +165,15 @@ export default function InvoicesPage() {
       )}
 
       <Card>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B4332]"></div>
-                <p className="mt-4 text-gray-600">Loading invoices...</p>
-              </div>
-            </div>
-          ) : invoices.length === 0 ? (
-            <CardBody>
-              <div className="flex flex-col items-center justify-center py-12">
-                <p className="text-gray-500 text-lg">No invoices yet</p>
-                <p className="text-gray-400 mt-1">Create your first invoice to get started</p>
-              </div>
-            </CardBody>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Invoice Number
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Client
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Total Amount
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Due Date
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Paid Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((invoice) => (
-                  <tr
-                    key={invoice.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {invoice.invoiceNumber}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {invoice.order?.enquiry?.clientName || "Unknown"}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <Badge variant={statusColors[invoice.status as keyof typeof statusColors]}>
-                        {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatPrice(invoice.totalAmount)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDate(invoice.dueDate)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDate(invoice.paidAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <CardBody className="p-0">
+          <DataGrid
+            rowData={invoices}
+            columnDefs={columnDefs}
+            loading={loading}
+            emptyMessage="No invoices yet. Create your first invoice to get started."
+            pageSize={20}
+          />
+        </CardBody>
       </Card>
     </div>
   );

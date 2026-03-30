@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -39,9 +40,38 @@ export default function SignupPage() {
     }
 
     try {
-      // TODO: Implement signup with NextAuth
-      console.log("Signup attempt:", formData);
-      router.push("/enquiries");
+      // Create account via API
+      const signupResponse = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          companyName: formData.companyName,
+        }),
+      });
+
+      if (!signupResponse.ok) {
+        const data = await signupResponse.json();
+        setError(data.error || "Failed to create account");
+        return;
+      }
+
+      // Sign in with credentials
+      const signInResult = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        setError("Account created but sign in failed. Please try logging in.");
+      } else {
+        router.push("/enquiries");
+        router.refresh();
+      }
     } catch (err) {
       setError("Failed to create account. Please try again.");
     } finally {

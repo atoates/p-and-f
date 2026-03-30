@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { ColDef } from "ag-grid-community";
+import { DataGrid } from "@/components/ui/data-grid";
+import { CurrencyRenderer, CategoryBadgeRenderer } from "@/components/ui/grid-renderers";
 
 interface Product {
   id: string;
@@ -50,13 +53,67 @@ export default function LibrariesPage() {
     ? products.filter((p) => p.category === selectedCategory)
     : products;
 
-  const formatPrice = (price?: string) => {
-    if (!price) return "-";
-    return `£${parseFloat(price).toLocaleString("en-GB", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+  const columnDefs: ColDef[] = [
+    {
+      field: "name",
+      headerName: "Name",
+      width: 180,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "category",
+      headerName: "Category",
+      width: 140,
+      cellRenderer: CategoryBadgeRenderer,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "subcategory",
+      headerName: "Subcategory",
+      width: 140,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "wholesalePrice",
+      headerName: "Wholesale Price",
+      width: 140,
+      cellRenderer: CurrencyRenderer,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "retailPrice",
+      headerName: "Retail Price",
+      width: 140,
+      cellRenderer: CurrencyRenderer,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "colour",
+      headerName: "Colour",
+      width: 120,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "season",
+      headerName: "Season",
+      width: 120,
+      sortable: true,
+      filter: true,
+    },
+    {
+      field: "supplier",
+      headerName: "Supplier",
+      width: 140,
+      sortable: true,
+      filter: true,
+    },
+  ];
 
   return (
     <div>
@@ -87,7 +144,7 @@ export default function LibrariesPage() {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category === "All" ? null : category)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colours ${
                   (selectedCategory === category || (selectedCategory === null && category === "All"))
                     ? "bg-[#1B4332] text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -102,81 +159,15 @@ export default function LibrariesPage() {
 
       {/* Products Table */}
       <Card>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B4332]"></div>
-                <p className="mt-4 text-gray-600">Loading products...</p>
-              </div>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <CardBody>
-              <div className="flex flex-col items-center justify-center py-12">
-                <p className="text-gray-500 text-lg">No products found</p>
-                <p className="text-gray-400 mt-1">Add your first product to get started</p>
-              </div>
-            </CardBody>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Category
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Wholesale Price
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Retail Price
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Colour
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Season
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Supplier
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
-                  <tr
-                    key={product.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {product.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {product.category}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatPrice(product.wholesalePrice)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatPrice(product.retailPrice)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {product.colour || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {product.season || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {product.supplier || "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <CardBody className="p-0">
+          <DataGrid
+            rowData={filteredProducts}
+            columnDefs={columnDefs}
+            loading={loading}
+            emptyMessage="No products found. Add your first product to get started."
+            pageSize={20}
+          />
+        </CardBody>
       </Card>
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { Flower, LogOut } from "lucide-react";
 import {
   FileText,
@@ -38,11 +39,9 @@ const settingsItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleLogout = async () => {
-    // TODO: Implement logout
-    router.push("/");
+    await signOut({ callbackUrl: "/" });
   };
 
   return (

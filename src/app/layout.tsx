@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Crimson_Text, Inter } from "next/font/google";
 import "./globals.css";
+import AuthProvider from "@/components/providers/session-provider";
 
 const seriffont = Crimson_Text({
   subsets: ["latin"],
@@ -26,7 +27,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${seriffont.variable} ${sansFont.variable}`}>
-      <body className="bg-[#FFF8F0] font-sans">{children}</body>
+      <body className="bg-[#FFF8F0] font-sans">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -19,11 +20,20 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // TODO: Implement login with NextAuth
-      console.log("Login attempt:", { email, password });
-      router.push("/enquiries");
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("Invalid email or password");
+      } else {
+        router.push("/enquiries");
+        router.refresh();
+      }
     } catch (err) {
-      setError("Invalid email or password");
+      setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

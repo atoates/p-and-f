@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Archive } from "lucide-react";
+import { Plus, Search, Filter, Archive, Edit2, Trash2 } from "lucide-react";
+import { EnquiryModal } from "@/components/enquiries/enquiry-modal";
 
 interface Enquiry {
   id: string;
@@ -26,6 +27,8 @@ export default function EnquiriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
 
   useEffect(() => {
     const fetchEnquiries = async () => {
@@ -84,6 +87,74 @@ export default function EnquiriesPage() {
     });
   };
 
+  const handleOpenModal = (enquiry?: Enquiry) => {
+    setSelectedEnquiry(enquiry || null);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEnquiry(null);
+  };
+
+  const handleSaveEnquiry = async (enquiryData: Partial<Enquiry>) => {
+    try {
+      if (selectedEnquiry) {
+        const response = await fetch(`/api/enquiries/${selectedEnquiry.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(enquiryData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update enquiry");
+        }
+      } else {
+        const response = await fetch("/api/enquiries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(enquiryData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create enquiry");
+        }
+      }
+
+      const response = await fetch("/api/enquiries");
+      const data = await response.json();
+      setEnquiries(data);
+      setFilteredEnquiries(data);
+    } catch (err) {
+      console.error("Error saving enquiry:", err);
+      throw err;
+    }
+  };
+
+  const handleDeleteEnquiry = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this enquiry? This will also delete any associated orders.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/enquiries/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete enquiry");
+      }
+
+      const updatedResponse = await fetch("/api/enquiries");
+      const data = await updatedResponse.json();
+      setEnquiries(data);
+      setFilteredEnquiries(data);
+    } catch (err) {
+      console.error("Error deleting enquiry:", err);
+      alert("Failed to delete enquiry");
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -91,7 +162,7 @@ export default function EnquiriesPage() {
           <h1 className="text-3xl font-serif font-bold text-gray-900">Enquiries</h1>
           <p className="text-gray-600 mt-1">Manage and track client enquiries</p>
         </div>
-        <Button variant="primary">
+        <Button variant="primary" onClick={() => handleOpenModal()}>
           <Plus size={20} className="mr-2" />
           Add New
         </Button>
@@ -191,10 +262,15 @@ export default function EnquiriesPage() {
                 {filteredEnquiries.map((enquiry) => (
                   <tr
                     key={enquiry.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {enquiry.clientName}
+                      <button
+                        onClick={() => handleOpenModal(enquiry)}
+                        className="text-[#1B4332] hover:underline font-medium"
+                      >
+                        {enquiry.clientName}
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {enquiry.clientEmail}
@@ -212,9 +288,25 @@ export default function EnquiriesPage() {
                       {enquiry.venueA || "-"}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <Badge variant={statusColors[enquiry.progress as keyof typeof statusColors]}>
-                        {enquiry.progress}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={statusColors[enquiry.progress as keyof typeof statusColors]}>
+                          {enquiry.progress}
+                        </Badge>
+                        <button
+                          onClick={() => handleOpenModal(enquiry)}
+                          className="p-1 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEnquiry(enquiry.id)}
+                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -223,6 +315,13 @@ export default function EnquiriesPage() {
           )}
         </div>
       </Card>
+
+      <EnquiryModal
+        isOpen={isModalOpen}
+        enquiry={selectedEnquiry}
+        onClose={handleCloseModal}
+        onSave={handleSaveEnquiry}
+      />
     </div>
   );
 }

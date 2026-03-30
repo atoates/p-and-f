@@ -68,9 +68,12 @@ export const authConfig = {
     },
     authorized({ request, auth }) {
       const isLoggedIn = !!auth?.user;
-      const isTrying = request.nextUrl.pathname.startsWith("/dashboard");
+      const { pathname } = request.nextUrl;
 
-      if (isTrying && !isLoggedIn) {
+      const publicPaths = ["/", "/login", "/signup", "/forgot-password"];
+      const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith("/api/auth");
+
+      if (!isPublicPath && !isLoggedIn) {
         return false;
       }
 
