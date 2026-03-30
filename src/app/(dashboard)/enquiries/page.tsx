@@ -1,45 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Archive } from "lucide-react";
 
+interface Enquiry {
+  id: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone?: string;
+  eventType?: string;
+  eventDate?: string;
+  venueA?: string;
+  venueB?: string;
+  progress: string;
+  createdAt: string;
+}
+
 export default function EnquiriesPage() {
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [filteredEnquiries, setFilteredEnquiries] = useState<Enquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
-  // Mock data
-  const enquiries = [
-    {
-      id: "1",
-      clientName: "Sarah Johnson",
-      clientEmail: "sarah@example.com",
-      eventType: "Wedding",
-      eventDate: "2026-06-15",
-      progress: "Live",
-      createdAt: "2026-03-20",
-    },
-    {
-      id: "2",
-      clientName: "Emma Smith",
-      clientEmail: "emma@example.com",
-      eventType: "Corporate Event",
-      eventDate: "2026-04-10",
-      progress: "TBD",
-      createdAt: "2026-03-18",
-    },
-    {
-      id: "3",
-      clientName: "Michael Brown",
-      clientEmail: "michael@example.com",
-      eventType: "Birthday",
-      eventDate: "2026-05-22",
-      progress: "New",
-      createdAt: "2026-03-25",
-    },
-  ];
+  useEffect(() => {
+    const fetchEnquiries = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/enquiries");
+        if (!response.ok) {
+          throw new Error("Failed to fetch enquiries");
+        }
+        const data = await response.json();
+        setEnquiries(data);
+        setFilteredEnquiries(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnquiries();
+  }, []);
+
+  useEffect(() => {
+    let filtered = enquiries;
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (enquiry) =>
+          enquiry.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          enquiry.clientEmail.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedStatus) {
+      filtered = filtered.filter((enquiry) => enquiry.progress === selectedStatus);
+    }
+
+    setFilteredEnquiries(filtered);
+  }, [searchTerm, selectedStatus, enquiries]);
 
   const statusColors: Record<string, "primary" | "success" | "warning" | "danger" | "secondary"> = {
     New: "warning",
@@ -50,11 +75,20 @@ export default function EnquiriesPage() {
     Order: "success",
   };
 
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Enquiries</h1>
+          <h1 className="text-3xl font-serif font-bold text-gray-900">Enquiries</h1>
           <p className="text-gray-600 mt-1">Manage and track client enquiries</p>
         </div>
         <Button variant="primary">
@@ -62,6 +96,14 @@ export default function EnquiriesPage() {
           Add New
         </Button>
       </div>
+
+      {error && (
+        <Card className="mb-6 bg-red-50 border-red-200">
+          <CardBody>
+            <p className="text-red-800">Error: {error}</p>
+          </CardBody>
+        </Card>
+      )}
 
       <Card className="mb-6">
         <CardBody>
@@ -73,14 +115,14 @@ export default function EnquiriesPage() {
                 placeholder="Search by client name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-green"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
               />
             </div>
 
             <select
               value={selectedStatus || ""}
               onChange={(e) => setSelectedStatus(e.target.value || null)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-green"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
             >
               <option value="">All statuses</option>
               <option value="New">New</option>
@@ -106,59 +148,79 @@ export default function EnquiriesPage() {
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                  Client Name
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                  Email
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                  Event Type
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                  Event Date
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                  Progress
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                  Created
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {enquiries.map((enquiry) => (
-                <tr
-                  key={enquiry.id}
-                  className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {enquiry.clientName}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {enquiry.clientEmail}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {enquiry.eventType}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(enquiry.eventDate).toLocaleDateString("en-GB")}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <Badge variant={statusColors[enquiry.progress as keyof typeof statusColors]}>
-                      {enquiry.progress}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(enquiry.createdAt).toLocaleDateString("en-GB")}
-                  </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B4332]"></div>
+                <p className="mt-4 text-gray-600">Loading enquiries...</p>
+              </div>
+            </div>
+          ) : filteredEnquiries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <p className="text-gray-500 text-lg">No enquiries found</p>
+              <p className="text-gray-400 mt-1">Try adjusting your filters or add a new enquiry</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    Client Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    Email
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    Phone
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    Event Type
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    Event Date
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    Venue
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    Progress
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredEnquiries.map((enquiry) => (
+                  <tr
+                    key={enquiry.id}
+                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {enquiry.clientName}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {enquiry.clientEmail}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {enquiry.clientPhone || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {enquiry.eventType || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {formatDate(enquiry.eventDate)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {enquiry.venueA || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <Badge variant={statusColors[enquiry.progress as keyof typeof statusColors]}>
+                        {enquiry.progress}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </Card>
     </div>

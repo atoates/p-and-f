@@ -593,7 +593,7 @@ async function seedData(client: any) {
     );
   }
 
-  // Seed enquiries
+  // Seed enquiries (expanded to 15)
   const enquiriesList = [
     {
       clientName: "Sarah Johnson",
@@ -603,7 +603,7 @@ async function seedData(client: any) {
       eventDate: new Date("2026-06-15"),
       venueA: "Chelsea Town Hall",
       progress: "Live",
-      notes: "Garden rose bride bouquet, white and blush theme",
+      notes: "Garden rose bride bouquet, white and blush theme. Approximately 45 guests. Very traditional style requested.",
     },
     {
       clientName: "Michael Brown",
@@ -613,17 +613,17 @@ async function seedData(client: any) {
       eventDate: new Date("2026-04-10"),
       venueA: "Canary Wharf Conference Centre",
       progress: "TBD",
-      notes: "50 table centrepieces, modern minimalist style",
+      notes: "50 table centrepieces, modern minimalist style. Corporate colours: navy and white. Reception area flowers also needed.",
     },
     {
       clientName: "Elizabeth Wilson",
       clientEmail: "liz.wilson@yahoo.com",
       clientPhone: "020 8123 4567",
-      eventType: "Sympathy",
+      eventType: "Funeral/Sympathy",
       eventDate: new Date("2026-04-05"),
-      venueA: "St Mary Church",
+      venueA: "St Mary Church, Kensington",
       progress: "Done",
-      notes: "Funeral wreaths and tributes, white and cream flowers",
+      notes: "Funeral wreaths and tributes, white and cream flowers. Two standing sprays and casket spray. Service time 2 PM.",
     },
     {
       clientName: "James & Emma Cooper",
@@ -633,7 +633,7 @@ async function seedData(client: any) {
       eventDate: new Date("2026-07-20"),
       venueA: "Richmond Park",
       progress: "New",
-      notes: "Summer wedding, colourful wildflower theme",
+      notes: "Summer wedding, colourful wildflower theme. Outdoor venue, bride wants loose, garden-style arrangements.",
     },
     {
       clientName: "Alexandra Chen",
@@ -643,7 +643,107 @@ async function seedData(client: any) {
       eventDate: new Date("2026-05-22"),
       venueA: "Private Residence, Knightsbridge",
       progress: "Live",
-      notes: "60th birthday celebration, sophisticated arrangement",
+      notes: "60th birthday celebration, sophisticated arrangement. Dinner party for 30. Colour scheme: blush and gold.",
+    },
+    {
+      clientName: "Thomas & Rebecca Hayes",
+      clientEmail: "rebecca.hayes@email.com",
+      clientPhone: "020 7654 3210",
+      eventType: "Wedding",
+      eventDate: new Date("2026-09-12"),
+      venueA: "Tower Bridge Exhibition Hall",
+      progress: "Placed",
+      notes: "Summer wedding, 120 guests. Bride bouquet, 6 bridesmaids, 30 table centrepieces. Colour: ivory and blush.",
+    },
+    {
+      clientName: "Priya Patel",
+      clientEmail: "priya.p@gmail.com",
+      clientPhone: "020 8876 5432",
+      eventType: "Anniversary",
+      eventDate: new Date("2026-08-30"),
+      venueA: "The Dorchester, Mayfair",
+      progress: "Order",
+      notes: "25th wedding anniversary celebration. Romantic arrangement for centrepiece. Red roses and white lilies.",
+    },
+    {
+      clientName: "David & Lucy Nelson",
+      clientEmail: "lucy.nelson@yahoo.co.uk",
+      clientPhone: "020 7123 4567",
+      eventType: "Wedding",
+      eventDate: new Date("2026-10-08"),
+      venueA: "Hampton Court Palace Gardens",
+      progress: "New",
+      notes: "Autumn wedding, rustic and romantic style. Dahlias, roses, and foliage. 80 guests.",
+    },
+    {
+      clientName: "Olivia Martinez",
+      clientEmail: "o.martinez@corporate.com",
+      clientPhone: "020 3210 9876",
+      eventType: "Corporate",
+      eventDate: new Date("2026-06-25"),
+      venueA: "Gherkin Reception Room",
+      progress: "Live",
+      notes: "Company summer party flowers. Reception desk arrangement, 15 table arrangements. Modern aesthetic.",
+    },
+    {
+      clientName: "Sophie & George Mitchell",
+      clientEmail: "george.mitchell@email.com",
+      clientPhone: "020 7456 2341",
+      eventType: "Baby Shower",
+      eventDate: new Date("2026-05-10"),
+      venueA: "Private Residence, Belgravia",
+      progress: "TBD",
+      notes: "Baby shower celebration. Pastel pink and white theme. Tiered arrangement for main table and small posies.",
+    },
+    {
+      clientName: "Christopher Williams",
+      clientEmail: "c.williams@design.co.uk",
+      clientPhone: "020 7899 0123",
+      eventType: "Birthday",
+      eventDate: new Date("2026-07-15"),
+      venueA: "Shoreditch Private Venue",
+      progress: "Live",
+      notes: "40th birthday. Colourful modern design arrangement. Mixed garden flowers. Reception and table flowers.",
+    },
+    {
+      clientName: "Margaret & William Thompson",
+      clientEmail: "margaret.thompson@hotmail.com",
+      clientPhone: "020 8765 4321",
+      eventType: "Wedding",
+      eventDate: new Date("2026-11-22"),
+      venueA: "St Paul's Cathedral",
+      progress: "New",
+      notes: "Formal winter wedding. White, gold, and ivory theme. 150 guests. Traditional style requested.",
+    },
+    {
+      clientName: "Jessica Carter",
+      clientEmail: "j.carter@event.com",
+      clientPhone: "020 7321 5678",
+      eventType: "Engagement Party",
+      eventDate: new Date("2026-08-14"),
+      venueA: "Chelsea Flower Show Gardens",
+      progress: "TBD",
+      notes: "Engagement celebration, 50 guests. Light, romantic arrangement. Peonies and lisianthus preferred.",
+    },
+    {
+      clientName: "Daniel & Victoria West",
+      clientEmail: "victoria.west@email.com",
+      clientPhone: "020 7432 8901",
+      eventType: "Wedding",
+      eventDate: new Date("2026-09-28"),
+      venueA: "Chiswick House",
+      progress: "Done",
+      notes: "Autumn wedding completed. Bridal bouquet, 5 bridesmaids, 35 table centrepieces delivered successfully.",
+    },
+    {
+      clientName: "Rachel Morris",
+      clientEmail: "r.morris@yahoo.com",
+      clientPhone: "020 8234 5678",
+      eventType: "Prom",
+      eventDate: new Date("2026-07-02"),
+      venueA: "Alexandra Palace",
+      progress: "Placed",
+      notes: "School prom flowers, 200+ guests. Elegant white and blush arrangements for entrance and stage.",
     },
   ];
 
@@ -669,38 +769,133 @@ async function seedData(client: any) {
     );
   }
 
-  // Seed orders and order items for some enquiries
-  for (let i = 0; i < 3; i++) {
+  // Seed orders and order items (expanded to 10 orders)
+  const orderData = [
+    {
+      enquiryIndex: 0,
+      status: "confirmed",
+      totalPrice: "2850.00",
+      items: [
+        { description: "Bridal Bouquet - Garden Roses", quantity: 1, unitPrice: "245.00", category: "Bouquet" },
+        { description: "Bridesmaids Bouquets", quantity: 4, unitPrice: "85.00", category: "Bouquet" },
+        { description: "Table Centrepieces", quantity: 20, unitPrice: "65.00", category: "Centrepiece" },
+        { description: "Church Pedestal Arrangements", quantity: 2, unitPrice: "275.00", category: "Pedestal" },
+      ],
+    },
+    {
+      enquiryIndex: 1,
+      status: "quote",
+      totalPrice: "3200.00",
+      items: [
+        { description: "Corporate Reception Arrangement", quantity: 1, unitPrice: "450.00", category: "Reception" },
+        { description: "Table Centrepieces", quantity: 50, unitPrice: "55.00", category: "Centrepiece" },
+      ],
+    },
+    {
+      enquiryIndex: 2,
+      status: "completed",
+      totalPrice: "890.00",
+      items: [
+        { description: "Funeral Wreath", quantity: 2, unitPrice: "350.00", category: "Sympathy" },
+        { description: "Casket Spray", quantity: 1, unitPrice: "190.00", category: "Sympathy" },
+      ],
+    },
+    {
+      enquiryIndex: 5,
+      status: "confirmed",
+      totalPrice: "4120.00",
+      items: [
+        { description: "Bridal Bouquet", quantity: 1, unitPrice: "250.00", category: "Bouquet" },
+        { description: "Bridesmaids Bouquets", quantity: 6, unitPrice: "80.00", category: "Bouquet" },
+        { description: "Table Centrepieces", quantity: 30, unitPrice: "65.00", category: "Centrepiece" },
+        { description: "Top Table Arrangement", quantity: 1, unitPrice: "130.00", category: "TopTable" },
+        { description: "Church Pedestals", quantity: 2, unitPrice: "270.00", category: "Pedestal" },
+        { description: "Buttonholes", quantity: 15, unitPrice: "12.00", category: "Buttonhole" },
+      ],
+    },
+    {
+      enquiryIndex: 6,
+      status: "completed",
+      totalPrice: "620.00",
+      items: [
+        { description: "Anniversary Centrepiece", quantity: 1, unitPrice: "150.00", category: "Centrepiece" },
+        { description: "Red Rose and Lily Arrangement", quantity: 2, unitPrice: "235.00", category: "Arrangement" },
+      ],
+    },
+    {
+      enquiryIndex: 9,
+      status: "draft",
+      totalPrice: "950.00",
+      items: [
+        { description: "Baby Shower Arrangement", quantity: 1, unitPrice: "180.00", category: "Arrangement" },
+        { description: "Small Posies", quantity: 5, unitPrice: "65.00", category: "Posy" },
+        { description: "Corsages", quantity: 8, unitPrice: "22.00", category: "Corsage" },
+      ],
+    },
+    {
+      enquiryIndex: 10,
+      status: "quote",
+      totalPrice: "1850.00",
+      items: [
+        { description: "Mixed Garden Arrangement", quantity: 3, unitPrice: "320.00", category: "Arrangement" },
+        { description: "Table Centrepieces", quantity: 8, unitPrice: "85.00", category: "Centrepiece" },
+      ],
+    },
+    {
+      enquiryIndex: 11,
+      status: "draft",
+      totalPrice: "5450.00",
+      items: [
+        { description: "Bridal Bouquet - White and Gold", quantity: 1, unitPrice: "280.00", category: "Bouquet" },
+        { description: "Bridesmaids Bouquets", quantity: 7, unitPrice: "95.00", category: "Bouquet" },
+        { description: "Table Centrepieces", quantity: 45, unitPrice: "75.00", category: "Centrepiece" },
+        { description: "Church Pedestals", quantity: 3, unitPrice: "300.00", category: "Pedestal" },
+        { description: "Top Table Arrangement", quantity: 1, unitPrice: "145.00", category: "TopTable" },
+        { description: "Buttonholes", quantity: 20, unitPrice: "14.00", category: "Buttonhole" },
+        { description: "Corsages", quantity: 8, unitPrice: "25.00", category: "Corsage" },
+      ],
+    },
+    {
+      enquiryIndex: 13,
+      status: "cancelled",
+      totalPrice: "3290.00",
+      items: [
+        { description: "Bridal Bouquet", quantity: 1, unitPrice: "240.00", category: "Bouquet" },
+        { description: "Bridesmaids Bouquets", quantity: 5, unitPrice: "85.00", category: "Bouquet" },
+        { description: "Table Centrepieces", quantity: 35, unitPrice: "70.00", category: "Centrepiece" },
+      ],
+    },
+    {
+      enquiryIndex: 14,
+      status: "quote",
+      totalPrice: "2200.00",
+      items: [
+        { description: "Prom Entrance Arrangement", quantity: 2, unitPrice: "450.00", category: "Reception" },
+        { description: "Stage Flowers", quantity: 3, unitPrice: "300.00", category: "Stage" },
+        { description: "Table Centrepieces", quantity: 15, unitPrice: "35.00", category: "Centrepiece" },
+      ],
+    },
+  ];
+
+  const orderIds = [];
+  const proposalOrderIds = [];
+  const invoiceOrderIds = [];
+
+  for (let i = 0; i < orderData.length; i++) {
     const orderId = randomUUID();
+    orderIds.push(orderId);
+    if (i < 6) proposalOrderIds.push(orderId);
+    if (i < 5) invoiceOrderIds.push(orderId);
+
+    const od = orderData[i];
     await client.query(
-      `INSERT INTO orders (id, enquiry_id, company_id, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())`,
-      [orderId, enquiryIds[i], COMPANY_ID, i === 0 ? "confirmed" : "quote"]
+      `INSERT INTO orders (id, enquiry_id, company_id, status, total_price, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+      [orderId, enquiryIds[od.enquiryIndex], COMPANY_ID, od.status, od.totalPrice]
     );
 
     // Add order items
-    const items = [
-      {
-        description: "Bride Bouquet - Garden Roses",
-        quantity: 1,
-        unitPrice: "150.00",
-        category: "Bouquet",
-      },
-      {
-        description: "Bridesmaids Bouquets (x4)",
-        quantity: 4,
-        unitPrice: "75.00",
-        category: "Bouquet",
-      },
-      {
-        description: "Table Centrepieces (x20)",
-        quantity: 20,
-        unitPrice: "45.00",
-        category: "Centrepiece",
-      },
-    ];
-
-    for (const item of items.slice(0, 2)) {
+    for (const item of od.items) {
       const orderItemId = randomUUID();
       const totalPrice = (parseFloat(item.unitPrice) * item.quantity).toFixed(2);
       await client.query(
@@ -717,6 +912,268 @@ async function seedData(client: any) {
         ]
       );
     }
+  }
+
+  // Seed proposals (6 proposals)
+  const proposalStatuses = ["draft", "sent", "accepted", "rejected", "sent", "accepted"];
+  for (let i = 0; i < proposalOrderIds.length; i++) {
+    const proposalId = randomUUID();
+    const sentAt = proposalStatuses[i] !== "draft" ? new Date() : null;
+    await client.query(
+      `INSERT INTO proposals (id, order_id, company_id, status, sent_at, content, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+      [
+        proposalId,
+        proposalOrderIds[i],
+        COMPANY_ID,
+        proposalStatuses[i],
+        sentAt,
+        "Detailed proposal for floral arrangements and event decoration. Please review the attached specification and pricing.",
+      ]
+    );
+  }
+
+  // Seed invoices (5 invoices)
+  const invoiceStatuses = ["draft", "sent", "paid", "overdue", "sent"];
+  for (let i = 0; i < invoiceOrderIds.length; i++) {
+    const invoiceId = randomUUID();
+    const invoiceNumber = `INV-2026-${String(i + 1).padStart(3, "0")}`;
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+    const paidAt = invoiceStatuses[i] === "paid" ? new Date() : null;
+
+    const orderAmount = orderData[i].totalPrice;
+    await client.query(
+      `INSERT INTO invoices (id, order_id, company_id, invoice_number, status, total_amount, due_date, paid_at, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+      [
+        invoiceId,
+        invoiceOrderIds[i],
+        COMPANY_ID,
+        invoiceNumber,
+        invoiceStatuses[i],
+        orderAmount,
+        dueDate,
+        paidAt,
+      ]
+    );
+  }
+
+  // Seed wholesale orders (4 wholesale orders)
+  const wholesaleData = [
+    {
+      orderId: orderIds[0],
+      supplier: "Dutch Flower Group",
+      items: JSON.stringify([
+        { item: "David Austin Roses - Juliet", quantity: 50, unitPrice: 4.50 },
+        { item: "White Hydrangeas", quantity: 30, unitPrice: 1.80 },
+        { item: "Eucalyptus Seeded", quantity: 20, unitPrice: 0.75 },
+      ]),
+      status: "confirmed",
+    },
+    {
+      orderId: orderIds[1],
+      supplier: "Triangle Nursery",
+      items: JSON.stringify([
+        { item: "Mixed Roses", quantity: 200, unitPrice: 2.00 },
+        { item: "Ruscus Italian", quantity: 100, unitPrice: 0.50 },
+        { item: "Gypsophila White", quantity: 80, unitPrice: 0.60 },
+      ]),
+      status: "received",
+    },
+    {
+      orderId: orderIds[3],
+      supplier: "Zest Flowers",
+      items: JSON.stringify([
+        { item: "Peonies Mix", quantity: 40, unitPrice: 5.50 },
+        { item: "Lisianthus White", quantity: 60, unitPrice: 1.50 },
+        { item: "Waxflower Pink", quantity: 50, unitPrice: 1.20 },
+        { item: "Asparagus Fern", quantity: 30, unitPrice: 0.65 },
+      ]),
+      status: "dispatched",
+    },
+    {
+      orderId: orderIds[4],
+      supplier: "Smithers Oasis",
+      items: JSON.stringify([
+        { item: "Oasis Bricks", quantity: 100, unitPrice: 0.75 },
+        { item: "Stem Tape", quantity: 50, unitPrice: 1.50 },
+        { item: "Wire 20 Gauge", quantity: 30, unitPrice: 0.50 },
+      ]),
+      status: "pending",
+    },
+  ];
+
+  for (const wo of wholesaleData) {
+    const wholesaleId = randomUUID();
+    const receivedDate = wo.status === "received" ? new Date() : null;
+    await client.query(
+      `INSERT INTO wholesale_orders (id, order_id, company_id, supplier, items, status, received_date, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+      [
+        wholesaleId,
+        wo.orderId,
+        COMPANY_ID,
+        wo.supplier,
+        wo.items,
+        wo.status,
+        receivedDate,
+      ]
+    );
+  }
+
+  // Seed production schedules (5 production schedules)
+  const productionData = [
+    {
+      orderId: orderIds[0],
+      eventDate: new Date("2026-06-14"),
+      items: JSON.stringify([
+        { item: "Bridal Bouquet", status: "in_progress" },
+        { item: "Bridesmaids Bouquets", status: "in_progress" },
+        { item: "Table Centrepieces", status: "not_started" },
+      ]),
+      notes: "Start early on bridesmaids to ensure consistency. Event is Saturday.",
+      status: "in_progress",
+    },
+    {
+      orderId: orderIds[1],
+      eventDate: new Date("2026-04-09"),
+      items: JSON.stringify([
+        { item: "Reception Arrangement", status: "completed" },
+        { item: "50 Table Centrepieces", status: "in_progress" },
+      ]),
+      notes: "Corporate event. Minimalist style, focus on clean lines.",
+      status: "in_progress",
+    },
+    {
+      orderId: orderIds[3],
+      eventDate: new Date("2026-09-11"),
+      items: JSON.stringify([
+        { item: "Bridal Bouquet", status: "not_started" },
+        { item: "6 Bridesmaids Bouquets", status: "not_started" },
+        { item: "30 Table Centrepieces", status: "not_started" },
+        { item: "Pedestals and Top Table", status: "not_started" },
+      ]),
+      notes: "Large summer wedding. Schedule production carefully to maintain freshness.",
+      status: "not_started",
+    },
+    {
+      orderId: orderIds[5],
+      eventDate: new Date("2026-05-09"),
+      items: JSON.stringify([
+        { item: "Baby Shower Arrangement", status: "completed" },
+        { item: "Small Posies", status: "completed" },
+      ]),
+      notes: "Pastel colours completed successfully.",
+      status: "completed",
+    },
+    {
+      orderId: orderIds[7],
+      eventDate: new Date("2026-11-21"),
+      items: JSON.stringify([
+        { item: "Bridal Bouquet - Formal White", status: "not_started" },
+        { item: "7 Bridesmaids Bouquets", status: "not_started" },
+        { item: "45 Table Centrepieces", status: "not_started" },
+      ]),
+      notes: "Formal winter wedding. Traditional style. Order well in advance for holiday season.",
+      status: "not_started",
+    },
+  ];
+
+  for (const pd of productionData) {
+    const productionId = randomUUID();
+    await client.query(
+      `INSERT INTO production_schedules (id, order_id, company_id, event_date, items, notes, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+      [
+        productionId,
+        pd.orderId,
+        COMPANY_ID,
+        pd.eventDate,
+        pd.items,
+        pd.notes,
+        pd.status,
+      ]
+    );
+  }
+
+  // Seed delivery schedules (5 delivery schedules)
+  const deliveryData = [
+    {
+      orderId: orderIds[0],
+      eventDate: new Date("2026-06-15"),
+      deliveryAddress: "Chelsea Town Hall, King's Road, London, SW3 5EE",
+      items: JSON.stringify([
+        { item: "Bridal Bouquet", delivered: false },
+        { item: "4 Bridesmaids Bouquets", delivered: false },
+        { item: "20 Table Centrepieces", delivered: false },
+      ]),
+      notes: "Early morning delivery. Coordinate with venue manager. Contact: Sarah Johnson 020 7946 0958",
+      status: "ready",
+    },
+    {
+      orderId: orderIds[1],
+      eventDate: new Date("2026-04-10"),
+      deliveryAddress: "Canary Wharf Conference Centre, 40 Bank Street, London, E14 5ER",
+      items: JSON.stringify([
+        { item: "Reception Arrangement", delivered: false },
+        { item: "50 Table Centrepieces", delivered: false },
+      ]),
+      notes: "Delivery by 8 AM for morning event setup. Building security code required.",
+      status: "pending",
+    },
+    {
+      orderId: orderIds[2],
+      eventDate: new Date("2026-04-05"),
+      deliveryAddress: "St Mary Church, Kensington Church Street, London, W8 4LA",
+      items: JSON.stringify([
+        { item: "2 Funeral Wreaths", delivered: true },
+        { item: "Casket Spray", delivered: true },
+      ]),
+      notes: "Delivery completed. Service took place as scheduled.",
+      status: "delivered",
+    },
+    {
+      orderId: orderIds[5],
+      eventDate: new Date("2026-09-12"),
+      deliveryAddress: "Tower Bridge Exhibition Hall, Tower Bridge, London, SE1 2UP",
+      items: JSON.stringify([
+        { item: "Bridal Bouquet", delivered: false },
+        { item: "6 Bridesmaids Bouquets", delivered: false },
+        { item: "30 Table Centrepieces", delivered: false },
+      ]),
+      notes: "Large wedding. Multiple deliveries may be required. Venue contact: Rebecca Hayes 020 7654 3210",
+      status: "dispatched",
+    },
+    {
+      orderId: orderIds[9],
+      eventDate: new Date("2026-07-02"),
+      deliveryAddress: "Alexandra Palace, Alexandra Palace Way, London, N22 7AY",
+      items: JSON.stringify([
+        { item: "Prom Entrance Flowers", delivered: false },
+        { item: "Stage Arrangements", delivered: false },
+      ]),
+      notes: "School prom event. Early afternoon delivery. Large event with many guests.",
+      status: "pending",
+    },
+  ];
+
+  for (const dd of deliveryData) {
+    const deliveryId = randomUUID();
+    await client.query(
+      `INSERT INTO delivery_schedules (id, order_id, company_id, event_date, delivery_address, items, notes, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+      [
+        deliveryId,
+        dd.orderId,
+        COMPANY_ID,
+        dd.eventDate,
+        dd.deliveryAddress,
+        dd.items,
+        dd.notes,
+        dd.status,
+      ]
+    );
   }
 }
 
