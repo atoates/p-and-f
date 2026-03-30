@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { authenticate } from "./actions";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,14 +19,41 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const result = await authenticate(email, password);
-      if (result?.error) {
-        setError(result.error);
+      // Get CSRF token first
+      const csrfRes = await fetch("/api/auth/csrf");
+      const { csrfToken } = await csrfRes.json();
+
+      // POST directly to the credentials callback endpoint
+      const res = await fetch("/api/auth/callback/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          csrfToken,
+          email,
+          password,
+          callbackUrl: "/enquiries",
+        }),
+        redirect: "follow",
+      });
+
+      // If we get a 200 with a url, check if it's an error redirect
+      if (res.ok) {
+        const url = new URL(res.url);
+        if (url.searchParams.has("error")) {
+          setError("Invalid email or password");
+          setIsLoading(false);
+        } else {
+          // Success - redirect to the dashboard
+          router.push("/enquiries");
+          router.refresh();
+        }
+      } else {
+        setError("Something went wrong. Please try again.");
         setIsLoading(false);
       }
-      // If no error, the server action handles the redirect
     } catch {
-      // Redirect errors are expected on success -- Next.js handles them
+      setError("Something went wrong. Please try again.");
+      setIsLoading(false);
     }
   };
 
