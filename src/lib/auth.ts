@@ -16,8 +16,17 @@ export const authConfig = {
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   providers: [
     Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
       async authorize(credentials) {
-        const parsed = credentialsSchema.safeParse(credentials);
+        // Coerce to strings -- server-side signIn can pass values as unknown types
+        const raw = {
+          email: String(credentials?.email ?? ""),
+          password: String(credentials?.password ?? ""),
+        };
+        const parsed = credentialsSchema.safeParse(raw);
 
         if (!parsed.success) {
           return null;
