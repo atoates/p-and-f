@@ -67,9 +67,22 @@ export const DateRenderer = (props: CellRendererProps) => {
 
 export const CategoryBadgeRenderer = (props: CellRendererProps) => {
   if (!props.value) return "-";
+  const displayNames: Record<string, string> = {
+    flower: "Flowers", foliage: "Foliage", sundry: "Sundries",
+    container: "Containers", ribbon: "Ribbons", accessory: "Accessories",
+  };
+  const colours: Record<string, string> = {
+    flower: "bg-pink-100 text-pink-800",
+    foliage: "bg-green-100 text-green-800",
+    sundry: "bg-amber-100 text-amber-800",
+    container: "bg-blue-100 text-blue-800",
+    ribbon: "bg-purple-100 text-purple-800",
+    accessory: "bg-gray-100 text-gray-800",
+  };
+  const val = props.value.toLowerCase();
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-      {props.value}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colours[val] || "bg-blue-100 text-blue-800"}`}>
+      {displayNames[val] || props.value}
     </span>
   );
 };

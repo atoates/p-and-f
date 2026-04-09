@@ -73,12 +73,16 @@ export default function LibrariesPage() {
     fetchProducts();
   }, []);
 
+  const categoryMap: Record<string, string> = {
+    "Flowers": "flower", "Foliage": "foliage", "Sundries": "sundry",
+    "Containers": "container", "Ribbons": "ribbon",
+  };
   const categories = ["All", "Flowers", "Foliage", "Sundries", "Containers", "Ribbons"];
   const categoryOptions = ["Flowers", "Foliage", "Sundries", "Containers", "Ribbons"];
   const seasonOptions = ["Spring", "Summer", "Autumn", "Winter", "Year Round"];
 
   const filteredProducts = selectedCategory && selectedCategory !== "All"
-    ? products.filter((p) => p.category === selectedCategory)
+    ? products.filter((p) => p.category === categoryMap[selectedCategory])
     : products;
 
   const validateForm = (): boolean => {
@@ -126,7 +130,10 @@ export default function LibrariesPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          category: categoryMap[formData.category] || formData.category,
+        }),
       });
 
       if (!response.ok) {
