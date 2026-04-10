@@ -1178,6 +1178,17 @@ async function seedData(client: any) {
 }
 
 async function main() {
+  // Seed is development-only. It drops/recreates tables and inserts
+  // demo accounts with a known password. Refuse to run against prod.
+  const allowProdSeed = process.env.ALLOW_PROD_SEED === "true";
+  if (process.env.NODE_ENV === "production" && !allowProdSeed) {
+    throw new Error(
+      "Refusing to run seed script in production. " +
+        "If you really want to seed a production database, set " +
+        "ALLOW_PROD_SEED=true in the environment."
+    );
+  }
+
   const client = await pool.connect();
 
   try {
