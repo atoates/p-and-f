@@ -1,26 +1,63 @@
 import { hash } from "bcryptjs";
 import { db } from "@/lib/db";
 import { users, companies } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { z } from "zod";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+
+// We validate with a server-side schema rather than reusing the
+// signup form schema: the form schema has confirmPassword, which we
+// never want on the API contract.
+const signupBodySchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required").max(100),
+  lastName: z.string().trim().min(1, "Last name is required").max(100),
+  email: z.string().trim().toLowerCase().email("Invalid email address").max(255),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(200, "Password is too long"),
+  companyName: z.string().trim().min(1, "Company name is required").max(200),
+});
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { firstName, lastName, email, password, companyName } = body;
+  // Per-IP rate limit: 5 signup attempts per 10 minutes. This is the
+  // cheap first line of defence before we add email verification.
+  const ipLimit = rateLimit(request, "signup", {
+    limit: 5,
+    windowMs: 10 * 60 * 1000,
+  });
+  const ipDenied = rateLimitResponse(ipLimit);
+  if (ipDenied) return ipDenied;
 
-    // Validate input
-    if (!firstName || !lastName || !email || !password || !companyName) {
+  try {
+    const raw = await request.json().catch(() => null);
+    const parsed = signupBodySchema.safeParse(raw);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        {
+          error: "Invalid signup details",
+          issues: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
+    const { firstName, lastName, email, password, companyName } = parsed.data;
 
-    // Check if user already exists
+    // Extra per-email limit so the same address can't be hammered from
+    // rotating IPs. Same window, tighter limit.
+    const emailLimit = rateLimit(request, "signup:email", {
+      limit: 3,
+      windowMs: 10 * 60 * 1000,
+      key: `email:${email}`,
+    });
+    const emailDenied = rateLimitResponse(emailLimit);
+    if (emailDenied) return emailDenied;
+
+    // Case-insensitive lookup: emails are unique regardless of casing.
     const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, email),
+      where: sql`lower(${users.email}) = ${email}`,
     });
 
     if (existingUser) {
@@ -30,10 +67,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password
     const hashedPassword = await hash(password, 10);
 
-    // Create company
     const [company] = await db
       .insert(companies)
       .values({
@@ -42,7 +77,6 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Create user
     const [user] = await db
       .insert(users)
       .values({
@@ -68,7 +102,12 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Signup error:", error);
+    // Log the message only -- full error objects can include SQL and
+    // parameter values.
+    console.error(
+      "Signup error:",
+      error instanceof Error ? error.message : "unknown"
+    );
     return NextResponse.json(
       { error: "Failed to create account" },
       { status: 500 }
