@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useId, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Trash2, Plus } from "lucide-react";
 import { ProductAutocomplete } from "./product-autocomplete";
+import { useModalA11y } from "@/hooks/use-modal-a11y";
 
 interface OrderItem {
   id: string;
@@ -96,6 +97,8 @@ function deriveUnitPrice(
 }
 
 export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) {
+  const titleId = useId();
+  const { dialogRef } = useModalA11y(isOpen, onClose);
   const [loading, setLoading] = useState(false);
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [enquiriesLoading, setEnquiriesLoading] = useState(true);
@@ -321,14 +324,30 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
   const total = calculateTotal();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto focus:outline-none"
+      >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-serif font-bold text-gray-900">
+          <h2
+            id={titleId}
+            className="text-2xl font-serif font-bold text-gray-900"
+          >
             {order ? "Edit Order" : "New Order"}
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="text-gray-500 hover:text-gray-700 transition-colors"
           >
             <X size={24} />
