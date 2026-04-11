@@ -20,7 +20,7 @@ interface Product {
   colour?: string;
   season?: string;
   supplier?: string;
-  isActive: string;
+  isActive: boolean;
 }
 
 interface FormData {

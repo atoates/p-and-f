@@ -62,11 +62,7 @@ export async function POST(request: NextRequest) {
         season: data.season,
         supplier: data.supplier,
         notes: data.notes,
-        // isActive is persisted as a 5-char varchar ("true"/"false") --
-        // see the code review note, this should eventually become a
-        // real boolean column.
-        isActive:
-          data.isActive === undefined ? "true" : data.isActive ? "true" : "false",
+        isActive: data.isActive ?? true,
       })
       .returning();
 

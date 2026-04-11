@@ -5,6 +5,7 @@ import {
   integer,
   decimal,
   timestamp,
+  boolean,
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -428,7 +429,7 @@ export const products = pgTable(
     season: varchar("season", { length: 100 }),
     supplier: varchar("supplier", { length: 255 }),
     notes: text("notes"),
-    isActive: varchar("is_active", { length: 5 }).default("true"),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
