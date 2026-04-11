@@ -15,26 +15,17 @@ export function MarketingNav() {
   }, []);
 
   const navBase = "sticky top-0 z-50 transition-all duration-300";
-  // Nav is `sticky` not `fixed`, so at scroll=0 it sits in document flow
-  // above the hero, on top of the body cream background — not over the
-  // hero. A transparent nav there shows cream behind it, making white
-  // text invisible. At scroll=0 we therefore paint the nav the same dark
-  // forest green as the hero so it reads as a seamless cap, then flip to
-  // white-on-scroll as the content below goes light.
+  // White nav with dark text at all scroll positions. A subtle shadow
+  // appears once the user scrolls to visually ground the sticky bar as
+  // content moves under it.
   const navBg = scrolled
     ? "bg-white border-b border-gray-200 shadow-sm"
-    : "bg-[#1B4332] border-b border-white/5";
+    : "bg-white border-b border-gray-100";
 
-  const textColor = scrolled ? "text-[#1B4332]" : "text-white";
-  const linkColor = scrolled
-    ? "text-gray-700 hover:text-[#2D6A4F]"
-    : "text-white/80 hover:text-white";
-  const loginColor = scrolled
-    ? "text-[#2D6A4F] hover:text-[#1B4332]"
-    : "text-white hover:text-white/80";
-  const signupBg = scrolled
-    ? "bg-[#2D6A4F] text-white hover:bg-[#1B4332]"
-    : "bg-white/15 text-white border border-white/30 hover:bg-white hover:text-[#1B4332]";
+  const textColor = "text-[#1B4332]";
+  const linkColor = "text-gray-700 hover:text-[#2D6A4F]";
+  const loginColor = "text-[#2D6A4F] hover:text-[#1B4332]";
+  const signupBg = "bg-[#2D6A4F] text-white hover:bg-[#1B4332]";
 
   return (
     <nav className={`${navBase} ${navBg}`}>
@@ -44,10 +35,7 @@ export function MarketingNav() {
             href="/"
             className={`flex items-center gap-2 font-serif font-bold text-xl transition-colors ${textColor}`}
           >
-            <Flower
-              className={scrolled ? "text-[#D4A0A7]" : "text-[#C9A96E]"}
-              size={28}
-            />
+            <Flower className="text-[#D4A0A7]" size={28} />
             <span>Petal & Prosper</span>
           </Link>
 
@@ -80,7 +68,7 @@ export function MarketingNav() {
           {/* Mobile toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`lg:hidden transition-colors ${scrolled ? "text-[#1B4332]" : "text-white"}`}
+            className="lg:hidden transition-colors text-[#1B4332]"
           >
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -88,30 +76,30 @@ export function MarketingNav() {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden pb-6 border-t border-white/10 pt-6 bg-[#1B4332]">
+          <div className="lg:hidden pb-6 border-t border-gray-200 pt-6 bg-white">
             <div className="flex flex-col gap-4 mb-6">
               {["features", "pricing", "faqs"].map((id) => (
                 <a
                   key={id}
                   href={`#${id}`}
-                  className="text-white/80 font-medium hover:text-white transition-colors capitalize"
+                  className="text-gray-700 font-medium hover:text-[#2D6A4F] transition-colors capitalize"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {id === "faqs" ? "FAQs" : id.charAt(0).toUpperCase() + id.slice(1)}
                 </a>
               ))}
             </div>
-            <div className="flex flex-col gap-3 pt-6 border-t border-white/10">
+            <div className="flex flex-col gap-3 pt-6 border-t border-gray-200">
               <Link
                 href="/login"
-                className="text-center text-white font-semibold py-2"
+                className="text-center text-[#2D6A4F] hover:text-[#1B4332] font-semibold py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
-                className="text-center bg-[#C9A96E] text-[#1B4332] px-6 py-2.5 rounded-lg hover:bg-white transition-all font-semibold"
+                className="text-center bg-[#2D6A4F] text-white px-6 py-2.5 rounded-lg hover:bg-[#1B4332] transition-all font-semibold"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Start free trial
