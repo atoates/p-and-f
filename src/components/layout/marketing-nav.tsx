@@ -82,7 +82,7 @@ export function MarketingNav() {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden pb-6 border-t border-white/10 pt-6 bg-[#0d2218]">
+          <div className="lg:hidden pb-6 border-t border-white/10 pt-6 bg-[#1B4332]">
             <div className="flex flex-col gap-4 mb-6">
               {["features", "pricing", "faqs"].map((id) => (
                 <a

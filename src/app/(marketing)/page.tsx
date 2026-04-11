@@ -23,7 +23,7 @@ export default function Home() {
   return (
     <>
       {/* ─── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-[#0d2218]">
+      <section className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-[#1B4332]">
         {/* Gradient orbs */}
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-[#2D6A4F] opacity-20 blur-[120px] animate-orb-pulse pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-[#C9A96E] opacity-10 blur-[100px] animate-orb-pulse pointer-events-none" style={{ animationDelay: "3s" }} />
@@ -91,7 +91,7 @@ export default function Home() {
             </a>
           </div>
 
-          <p className="text-sm text-white/35 font-light tracking-wide">
+          <p className="text-sm text-white/70 font-light tracking-wide">
             No credit card &middot; 30-day free trial &middot; Cancel anytime
           </p>
         </div>
@@ -113,7 +113,7 @@ export default function Home() {
               <p className="text-5xl sm:text-6xl font-serif font-bold text-[#1B4332] mb-2 leading-none">
                 {stat.value}
               </p>
-              <p className="text-sm text-gray-500 font-medium tracking-wide uppercase">
+              <p className="text-sm text-gray-600 font-medium tracking-wide uppercase">
                 {stat.label}
               </p>
             </div>
@@ -125,7 +125,7 @@ export default function Home() {
       <section id="features" className="py-28 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="mb-16 max-w-2xl">
-            <p className="text-sm font-semibold text-[#C9A96E] uppercase tracking-widest mb-4">
+            <p className="text-sm font-semibold text-[#7A5C2E] uppercase tracking-widest mb-4">
               Platform
             </p>
             <h2 className="text-5xl sm:text-6xl font-serif font-bold text-[#1B4332] leading-tight">
@@ -136,21 +136,21 @@ export default function Home() {
           {/* Bento grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Enquiries — large */}
-            <div className="md:col-span-2 rounded-3xl bg-[#0d2218] p-8 sm:p-10 flex flex-col justify-between min-h-[280px] group hover:scale-[1.01] transition-transform duration-300">
+            <div className="md:col-span-2 rounded-3xl bg-[#1B4332] p-8 sm:p-10 flex flex-col justify-between min-h-[280px] group hover:scale-[1.01] transition-transform duration-300">
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
-                  <FileText className="text-[#C9A96E]" size={24} />
+                  <FileText className="text-[#E8CFA0]" size={24} />
                 </div>
                 <h3 className="text-2xl font-serif font-bold text-white mb-3">
                   Enquiry Management
                 </h3>
-                <p className="text-white/60 leading-relaxed">
+                <p className="text-white/80 leading-relaxed">
                   Every lead tracked from first contact to confirmed booking. Never lose an enquiry again.
                 </p>
               </div>
               <div className="flex gap-2 mt-6 flex-wrap">
                 {["New", "Live", "TBD", "Placed", "Done"].map((s) => (
-                  <span key={s} className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70">
+                  <span key={s} className="px-3 py-1 rounded-full text-xs font-medium bg-white/15 text-white/90">
                     {s}
                   </span>
                 ))}
@@ -225,22 +225,22 @@ export default function Home() {
             </div>
 
             {/* Production */}
-            <div className="md:col-span-2 rounded-3xl bg-[#1B4332] p-8 sm:p-10 flex flex-col sm:flex-row gap-8 items-start group hover:scale-[1.01] transition-transform duration-300">
+            <div className="md:col-span-2 rounded-3xl bg-[#2D5A3D] p-8 sm:p-10 flex flex-col sm:flex-row gap-8 items-start group hover:scale-[1.01] transition-transform duration-300">
               <div className="flex-1">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
-                  <Wrench className="text-[#C9A96E]" size={24} />
+                <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center mb-6">
+                  <Wrench className="text-[#E8CFA0]" size={24} />
                 </div>
                 <h3 className="text-xl font-serif font-bold text-white mb-2">Production</h3>
-                <p className="text-white/60 text-sm leading-relaxed">
+                <p className="text-white/85 text-sm leading-relaxed">
                   Schedule builds, assign team tasks, and track progress from stem to arrangement.
                 </p>
               </div>
               <div className="flex-1">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
-                  <Truck className="text-[#C9A96E]" size={24} />
+                <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center mb-6">
+                  <Truck className="text-[#E8CFA0]" size={24} />
                 </div>
                 <h3 className="text-xl font-serif font-bold text-white mb-2">Delivery</h3>
-                <p className="text-white/60 text-sm leading-relaxed">
+                <p className="text-white/85 text-sm leading-relaxed">
                   Plan delivery routes, manage driver notes, and confirm on-time arrivals.
                 </p>
               </div>
@@ -276,7 +276,7 @@ export default function Home() {
       <section className="py-28 px-4 sm:px-6 lg:px-8 bg-[#F7F2EA]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20">
-            <p className="text-sm font-semibold text-[#C9A96E] uppercase tracking-widest mb-4">
+            <p className="text-sm font-semibold text-[#7A5C2E] uppercase tracking-widest mb-4">
               Workflow
             </p>
             <h2 className="text-5xl sm:text-6xl font-serif font-bold text-[#1B4332] leading-tight">
@@ -330,7 +330,7 @@ export default function Home() {
       </section>
 
       {/* ─── TESTIMONIALS ─────────────────────────────────────────── */}
-      <section className="py-28 px-4 sm:px-6 lg:px-8 bg-[#0d2218] relative overflow-hidden">
+      <section className="py-28 px-4 sm:px-6 lg:px-8 bg-[#1B4332] relative overflow-hidden">
         <FloralBranch className="absolute top-0 left-0 w-80 h-auto text-[#2D6A4F] opacity-15 -translate-x-8 pointer-events-none" />
         <FloralRose className="absolute bottom-12 right-8 w-56 h-auto text-[#C9A96E] opacity-10 pointer-events-none" />
 
@@ -384,7 +384,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="font-semibold text-white text-sm">{t.name}</p>
-                    <p className="text-white/45 text-xs">{t.company}</p>
+                    <p className="text-white/75 text-xs">{t.company}</p>
                   </div>
                 </div>
               </div>
@@ -397,13 +397,13 @@ export default function Home() {
       <section id="pricing" className="py-28 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-[#C9A96E] uppercase tracking-widest mb-4">
+            <p className="text-sm font-semibold text-[#7A5C2E] uppercase tracking-widest mb-4">
               Pricing
             </p>
             <h2 className="text-5xl sm:text-6xl font-serif font-bold text-[#1B4332] leading-tight">
               Simple, honest pricing.
             </h2>
-            <p className="text-xl text-gray-500 mt-4 font-light">
+            <p className="text-xl text-gray-600 mt-4 font-light">
               Every plan includes a 30-day free trial. No card needed.
             </p>
           </div>
@@ -481,10 +481,10 @@ export default function Home() {
                   </div>
                 )}
 
-                <p className={`text-sm font-semibold uppercase tracking-widest mb-2 ${plan.highlighted ? "text-[#C9A96E]" : "text-[#2D6A4F]"}`}>
+                <p className={`text-sm font-semibold uppercase tracking-widest mb-2 ${plan.highlighted ? "text-[#E8CFA0]" : "text-[#2D6A4F]"}`}>
                   {plan.name}
                 </p>
-                <p className={`text-sm mb-6 ${plan.highlighted ? "text-white/60" : "text-gray-500"}`}>
+                <p className={`text-sm mb-6 ${plan.highlighted ? "text-white/80" : "text-gray-600"}`}>
                   {plan.desc}
                 </p>
 
@@ -492,11 +492,11 @@ export default function Home() {
                   <span className={`text-5xl font-serif font-bold ${plan.highlighted ? "text-white" : "text-[#1B4332]"}`}>
                     {plan.price}
                   </span>
-                  <span className={`text-sm ml-1 ${plan.highlighted ? "text-white/50" : "text-gray-400"}`}>
+                  <span className={`text-sm ml-1 ${plan.highlighted ? "text-white/80" : "text-gray-600"}`}>
                     {plan.period}
                   </span>
                 </div>
-                <p className={`text-xs mb-8 ${plan.highlighted ? "text-white/40" : "text-gray-400"}`}>
+                <p className={`text-xs mb-8 ${plan.highlighted ? "text-white/75" : "text-gray-600"}`}>
                   {plan.note}
                 </p>
 
@@ -534,7 +534,7 @@ export default function Home() {
       <section id="faqs" className="py-28 px-4 sm:px-6 lg:px-8 bg-[#F7F2EA]">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-[#C9A96E] uppercase tracking-widest mb-4">
+            <p className="text-sm font-semibold text-[#7A5C2E] uppercase tracking-widest mb-4">
               FAQs
             </p>
             <h2 className="text-5xl sm:text-6xl font-serif font-bold text-[#1B4332] leading-tight">
@@ -546,7 +546,7 @@ export default function Home() {
       </section>
 
       {/* ─── CTA ──────────────────────────────────────────────────── */}
-      <section className="relative py-32 px-4 sm:px-6 lg:px-8 bg-[#0d2218] overflow-hidden">
+      <section className="relative py-32 px-4 sm:px-6 lg:px-8 bg-[#1B4332] overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-[#2D6A4F] opacity-15 blur-[120px] pointer-events-none" />
         <FloralBranch className="absolute top-0 right-0 w-72 h-auto text-[#2D6A4F] opacity-10 translate-x-4 scale-x-[-1] pointer-events-none" />
         <FloralLeaf className="absolute bottom-0 left-0 w-40 h-auto text-[#C9A96E] opacity-10 pointer-events-none" />
@@ -557,7 +557,7 @@ export default function Home() {
             Ready to run your business
             <span className="italic text-[#C9A96E]"> beautifully?</span>
           </h2>
-          <p className="text-xl text-white/50 mb-12 font-light">
+          <p className="text-xl text-white/80 mb-12 font-light">
             Join hundreds of UK florists. Start your free 30-day trial today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -575,7 +575,7 @@ export default function Home() {
               Log in
             </Link>
           </div>
-          <p className="text-sm text-white/25 mt-8 font-light tracking-wide">
+          <p className="text-sm text-white/70 mt-8 font-light tracking-wide">
             No credit card &middot; Cancel anytime
           </p>
         </div>
