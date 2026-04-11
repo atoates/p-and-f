@@ -109,7 +109,11 @@ export async function PUT(
         );
 
         for (const item of itemsToDelete) {
-          await tx.delete(orderItems).where(eq(orderItems.id, item.id));
+          await tx
+            .delete(orderItems)
+            .where(
+              and(eq(orderItems.id, item.id), eq(orderItems.orderId, params.id))
+            );
         }
 
         for (const item of incoming) {
@@ -123,7 +127,12 @@ export async function PUT(
                 unitPrice: item.unitPrice,
                 totalPrice: item.totalPrice,
               })
-              .where(eq(orderItems.id, item.id));
+              .where(
+                and(
+                  eq(orderItems.id, item.id),
+                  eq(orderItems.orderId, params.id)
+                )
+              );
           } else {
             await tx.insert(orderItems).values({
               id: crypto.randomUUID(),

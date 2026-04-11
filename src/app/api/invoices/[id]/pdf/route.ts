@@ -105,7 +105,10 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error generating invoice PDF:", error);
+    console.error(
+      "Error generating invoice PDF:",
+      error instanceof Error ? error.message : "unknown"
+    );
     return NextResponse.json(
       { error: "Failed to generate invoice PDF" },
       { status: 500 }

@@ -65,7 +65,10 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Error updating team member role:", error);
+    console.error(
+      "Error updating team member role:",
+      error instanceof Error ? error.message : "unknown"
+    );
     return NextResponse.json(
       { error: "Failed to update team member role" },
       { status: 500 }
@@ -104,7 +107,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error removing team member:", error);
+    console.error(
+      "Error removing team member:",
+      error instanceof Error ? error.message : "unknown"
+    );
     return NextResponse.json(
       { error: "Failed to remove team member" },
       { status: 500 }

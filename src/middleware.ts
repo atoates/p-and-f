@@ -1,22 +1,8 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import NextAuth from "next-auth";
+import { authConfigEdge } from "@/lib/auth.config";
 
-export function middleware(request: NextRequest) {
-  // Check for NextAuth session token cookie
-  const token =
-    request.cookies.get("next-auth.session-token") ||
-    request.cookies.get("__Secure-next-auth.session-token") ||
-    request.cookies.get("authjs.session-token") ||
-    request.cookies.get("__Secure-authjs.session-token");
-
-  if (!token) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return NextResponse.next();
-}
+const { auth } = NextAuth(authConfigEdge);
+export default auth;
 
 export const config = {
   matcher: [

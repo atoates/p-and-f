@@ -5,6 +5,7 @@ import { db } from "./db";
 import { users } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { authConfigEdge } from "./auth.config";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -12,8 +13,7 @@ const credentialsSchema = z.object({
 });
 
 export const authConfig = {
-  trustHost: true,
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  ...authConfigEdge,
   providers: [
     Credentials({
       credentials: {
@@ -55,45 +55,13 @@ export const authConfig = {
             companyId: user.companyId,
           };
         } catch (err) {
-          console.error("[auth] authorize error:", err);
+          console.error(
+            "[auth] authorize error:",
+            err instanceof Error ? err.message : "unknown"
+          );
           return null;
         }
       },
     }),
   ],
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user && user.id) {
-        token.id = user.id;
-        token.role = user.role;
-        token.companyId = user.companyId;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.companyId = token.companyId;
-      }
-      return session;
-    },
-    authorized({ request, auth }) {
-      const isLoggedIn = !!auth?.user;
-      const { pathname } = request.nextUrl;
-
-      const publicPaths = ["/", "/login", "/signup", "/forgot-password"];
-      const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith("/api/auth");
-
-      if (!isPublicPath && !isLoggedIn) {
-        return false;
-      }
-
-      return true;
-    },
-  },
 } satisfies NextAuthConfig;

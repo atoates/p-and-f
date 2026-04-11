@@ -101,7 +101,10 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error generating proposal PDF:", error);
+    console.error(
+      "Error generating proposal PDF:",
+      error instanceof Error ? error.message : "unknown"
+    );
     return NextResponse.json(
       { error: "Failed to generate proposal PDF" },
       { status: 500 }

@@ -26,7 +26,10 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error fetching team members:", error);
+    console.error(
+      "Error fetching team members:",
+      error instanceof Error ? error.message : "unknown"
+    );
     return NextResponse.json(
       { error: "Failed to fetch team members" },
       { status: 500 }
@@ -83,7 +86,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    console.error("Error inviting team member:", error);
+    console.error(
+      "Error inviting team member:",
+      error instanceof Error ? error.message : "unknown"
+    );
     return NextResponse.json(
       { error: "Failed to invite team member" },
       { status: 500 }
