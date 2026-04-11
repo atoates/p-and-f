@@ -6,9 +6,11 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, Trash2, FilePlus } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, FilePlus, Archive, ArchiveRestore } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import { EnquiryModal } from "@/components/enquiries/enquiry-modal";
+
+type EnquiryView = "active" | "archived";
 
 interface Enquiry {
   id: string;
@@ -21,6 +23,7 @@ interface Enquiry {
   venueB?: string;
   progress: string;
   createdAt: string;
+  archivedAt?: string | null;
 }
 
 export default function EnquiriesPage() {
@@ -34,18 +37,23 @@ export default function EnquiriesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
   const [creatingOrderFor, setCreatingOrderFor] = useState<string | null>(null);
+  const [view, setView] = useState<EnquiryView>("active");
+
+  const refreshEnquiries = async (nextView: EnquiryView = view) => {
+    const response = await fetch(`/api/enquiries?view=${nextView}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch enquiries");
+    }
+    const data = await response.json();
+    setEnquiries(data);
+    setFilteredEnquiries(data);
+  };
 
   useEffect(() => {
     const fetchEnquiries = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/enquiries");
-        if (!response.ok) {
-          throw new Error("Failed to fetch enquiries");
-        }
-        const data = await response.json();
-        setEnquiries(data);
-        setFilteredEnquiries(data);
+        await refreshEnquiries(view);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -54,7 +62,8 @@ export default function EnquiriesPage() {
     };
 
     fetchEnquiries();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   useEffect(() => {
     let filtered = enquiries;
@@ -126,13 +135,42 @@ export default function EnquiriesPage() {
         }
       }
 
-      const response = await fetch("/api/enquiries");
-      const data = await response.json();
-      setEnquiries(data);
-      setFilteredEnquiries(data);
+      await refreshEnquiries();
     } catch (err) {
       console.error("Error saving enquiry:", err);
       throw err;
+    }
+  };
+
+  const handleArchiveEnquiry = async (id: string) => {
+    try {
+      const response = await fetch(`/api/enquiries/${id}/archive`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to archive enquiry");
+      }
+      await refreshEnquiries();
+      toast.success("Enquiry archived");
+    } catch (err) {
+      console.error("Error archiving enquiry:", err);
+      toast.error("Failed to archive enquiry");
+    }
+  };
+
+  const handleUnarchiveEnquiry = async (id: string) => {
+    try {
+      const response = await fetch(`/api/enquiries/${id}/archive`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to restore enquiry");
+      }
+      await refreshEnquiries();
+      toast.success("Enquiry restored");
+    } catch (err) {
+      console.error("Error unarchiving enquiry:", err);
+      toast.error("Failed to restore enquiry");
     }
   };
 
@@ -174,10 +212,7 @@ export default function EnquiriesPage() {
         throw new Error("Failed to delete enquiry");
       }
 
-      const updatedResponse = await fetch("/api/enquiries");
-      const data = await updatedResponse.json();
-      setEnquiries(data);
-      setFilteredEnquiries(data);
+      await refreshEnquiries();
     } catch (err) {
       console.error("Error deleting enquiry:", err);
       toast.error("Failed to delete enquiry");
@@ -235,7 +270,32 @@ export default function EnquiriesPage() {
               <option value="Order">Order</option>
             </select>
 
-{/* Advanced filters and archive features coming in a future release */}
+            <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setView("active")}
+                aria-pressed={view === "active"}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  view === "active"
+                    ? "bg-[#1B4332] text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Active
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("archived")}
+                aria-pressed={view === "archived"}
+                className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-300 ${
+                  view === "archived"
+                    ? "bg-[#1B4332] text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Archived
+              </button>
+            </div>
           </div>
         </CardBody>
       </Card>
@@ -335,6 +395,29 @@ export default function EnquiriesPage() {
                         >
                           <Edit2 size={16} />
                         </button>
+                        <Can permission="enquiries:archive">
+                          {view === "active" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleArchiveEnquiry(enquiry.id)}
+                              className="p-1 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded transition-colors"
+                              title="Archive"
+                              aria-label="Archive enquiry"
+                            >
+                              <Archive size={16} />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleUnarchiveEnquiry(enquiry.id)}
+                              className="p-1 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded transition-colors"
+                              title="Restore from archive"
+                              aria-label="Restore enquiry from archive"
+                            >
+                              <ArchiveRestore size={16} />
+                            </button>
+                          )}
+                        </Can>
                         <Can permission="enquiries:delete">
                           <button
                             type="button"

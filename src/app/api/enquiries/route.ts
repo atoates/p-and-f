@@ -1,18 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { enquiries } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, desc } from "drizzle-orm";
 import { requirePermissionApi } from "@/lib/auth/permissions-api";
 import { parseJsonBody, enquiryBodySchema } from "@/lib/validators/api";
 
-export async function GET(_request: NextRequest) {
+// Supported values for ?view=
+//   active   (default) -- only rows where archivedAt IS NULL
+//   archived           -- only rows where archivedAt IS NOT NULL
+//   all                -- both, for places that need the full list
+export async function GET(request: NextRequest) {
   const gate = await requirePermissionApi("enquiries:read");
   if ("response" in gate) return gate.response;
   const { ctx } = gate;
 
+  const { searchParams } = new URL(request.url);
+  const view = searchParams.get("view") ?? "active";
+
   try {
+    const archiveClause =
+      view === "archived"
+        ? isNotNull(enquiries.archivedAt)
+        : view === "all"
+          ? undefined
+          : isNull(enquiries.archivedAt);
+
+    const whereClause = archiveClause
+      ? and(eq(enquiries.companyId, ctx.companyId), archiveClause)
+      : eq(enquiries.companyId, ctx.companyId);
+
     const result = await db.query.enquiries.findMany({
-      where: eq(enquiries.companyId, ctx.companyId),
+      where: whereClause,
       orderBy: desc(enquiries.createdAt),
     });
 
