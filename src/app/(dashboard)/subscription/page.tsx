@@ -1,12 +1,21 @@
 "use client";
 
+import { notFound } from "next/navigation";
 import toast from "react-hot-toast";
 import { Card, CardHeader, CardBody, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle } from "lucide-react";
+import { featureFlags } from "@/lib/feature-flags";
 
 export default function SubscriptionPage() {
+  // Billing UI is a placeholder until the payments integration lands.
+  // Gate it behind NEXT_PUBLIC_FEATURE_SUBSCRIPTION so customers don't
+  // see features they can't actually use.
+  if (!featureFlags.subscriptionBilling) {
+    notFound();
+  }
+
   return (
     <div>
       <div className="mb-8">

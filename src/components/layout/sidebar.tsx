@@ -20,6 +20,7 @@ import {
   Library,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { featureFlags } from "@/lib/feature-flags";
 
 const navigationItems = [
   { name: "Home", href: "/home", icon: Home },
@@ -36,7 +37,11 @@ const navigationItems = [
 
 const settingsItems = [
   { name: "Settings", href: "/settings", icon: Settings },
-  { name: "Subscription", href: "/subscription", icon: CreditCard },
+  // The Subscription entry only exists when the billing feature
+  // flag is on. See src/lib/feature-flags.ts.
+  ...(featureFlags.subscriptionBilling
+    ? [{ name: "Subscription", href: "/subscription", icon: CreditCard }]
+    : []),
   { name: "User", href: "/user", icon: User },
 ];
 
