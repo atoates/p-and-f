@@ -233,12 +233,19 @@ export default function OrderDetailPage() {
     }
   };
 
-  const handleSaveOrder = async (_updated: Record<string, unknown>) => {
-    // The OrderModal already PUTs to /api/orders/:id internally, so we
-    // just need to refresh the local state after the modal closes.
-    const res = await fetch(`/api/orders/${id}`);
-    if (res.ok) {
-      setOrder(await res.json());
+  const handleSaveOrder = async (orderData: Record<string, unknown>) => {
+    const res = await fetch(`/api/orders/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(orderData),
+    });
+    if (!res.ok) {
+      throw new Error("Failed to update order");
+    }
+    // Refresh local state with the saved order
+    const refreshed = await fetch(`/api/orders/${id}`);
+    if (refreshed.ok) {
+      setOrder(await refreshed.json());
     }
   };
 
