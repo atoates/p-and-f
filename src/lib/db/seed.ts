@@ -121,7 +121,7 @@ async function createTables(client: any) {
       company_id TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL
     )
   `);
 
@@ -138,7 +138,7 @@ async function createTables(client: any) {
       country VARCHAR(100) DEFAULT 'United Kingdom',
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -158,7 +158,7 @@ async function createTables(client: any) {
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
       archived_at TIMESTAMP,
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -172,8 +172,8 @@ async function createTables(client: any) {
       total_price DECIMAL(10,2),
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (enquiry_id) REFERENCES enquiries(id),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (enquiry_id) REFERENCES enquiries(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -187,7 +187,7 @@ async function createTables(client: any) {
       unit_price DECIMAL(10,2) NOT NULL,
       total_price DECIMAL(10,2) NOT NULL,
       created_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (order_id) REFERENCES orders(id)
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
     )
   `);
 
@@ -201,8 +201,8 @@ async function createTables(client: any) {
       content TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (order_id) REFERENCES orders(id),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -218,8 +218,8 @@ async function createTables(client: any) {
       paid_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (order_id) REFERENCES orders(id),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -235,8 +235,8 @@ async function createTables(client: any) {
       received_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (order_id) REFERENCES orders(id),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -251,8 +251,8 @@ async function createTables(client: any) {
       status production_status DEFAULT 'not_started',
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (order_id) REFERENCES orders(id),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -268,8 +268,8 @@ async function createTables(client: any) {
       status delivery_status DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (order_id) REFERENCES orders(id),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -285,7 +285,7 @@ async function createTables(client: any) {
       staff_margin DECIMAL(5,2) DEFAULT 1.5,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -298,7 +298,7 @@ async function createTables(client: any) {
       terms_and_conditions TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -311,7 +311,7 @@ async function createTables(client: any) {
       notes TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -326,7 +326,7 @@ async function createTables(client: any) {
       monthly_price DECIMAL(10,2),
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -348,7 +348,7 @@ async function createTables(client: any) {
       is_active VARCHAR(5) DEFAULT 'true',
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY (company_id) REFERENCES companies(id)
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 }

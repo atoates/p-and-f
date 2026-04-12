@@ -82,6 +82,24 @@ export const deliveryStatusEnum = pgEnum("delivery_status", [
 ]);
 
 // Tables
+//
+// Foreign key strategy (see #18 in Process-Flow-Review-2026-04-11.md):
+//
+// - companyId → companies.id is always ON DELETE CASCADE. Deleting a
+//   tenant removes all of their rows, no orphans left behind.
+// - orderId → orders.id is ON DELETE CASCADE for anything that only
+//   exists in the context of an order (items, proposals, invoices,
+//   production, delivery, wholesale). The app-layer delete handlers
+//   can still gate this behind confirmations; the FK just guarantees
+//   we never leak orphan rows if a delete succeeds.
+// - createdBy / updatedBy → users.id is ON DELETE SET NULL so a user
+//   leaving the company doesn't blow up their historic audit trail.
+// - orders.enquiryId → enquiries.id is ON DELETE CASCADE so deleting
+//   an enquiry cleans up the orders that hung off it. The existing
+//   enquiry DELETE handler already did this in application code; now
+//   the DB guarantees it even if that path is bypassed.
+// - deliverySchedules.venueId → venues.id is ON DELETE SET NULL so a
+//   deleted venue doesn't nuke historical delivery records.
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
@@ -89,7 +107,13 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
   role: userRoleEnum("role").default("staff"),
-  companyId: text("company_id"),
+  // Forward reference to companies is intentional -- the companies
+  // table is declared a few lines below. Drizzle resolves
+  // .references() callbacks lazily so this works despite the
+  // textual order.
+  companyId: text("company_id").references(() => companies.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -101,7 +125,9 @@ export const users = pgTable("users", {
 // a reset succeeds so tokens are strictly single-use.
 export const passwordResetTokens = pgTable("password_reset_tokens", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   tokenHash: varchar("token_hash", { length: 128 }).notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
@@ -123,7 +149,9 @@ export const companies = pgTable("companies", {
 
 export const addresses = pgTable("addresses", {
   id: text("id").primaryKey(),
-  companyId: text("company_id").notNull(),
+  companyId: text("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
   type: addressTypeEnum("type").notNull(),
   buildingName: varchar("building_name", { length: 255 }),
   street: varchar("street", { length: 255 }).notNull(),
@@ -139,7 +167,9 @@ export const enquiries = pgTable(
   "enquiries",
   {
     id: text("id").primaryKey(),
-    companyId: text("company_id").notNull(),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     clientName: varchar("client_name", { length: 255 }).notNull(),
     clientEmail: varchar("client_email", { length: 255 }).notNull(),
     clientPhone: varchar("client_phone", { length: 20 }),
@@ -152,8 +182,14 @@ export const enquiries = pgTable(
     // Audit columns: user id of whoever originally created the row and
     // whoever last touched it. Both nullable because historic rows
     // predate this column and we backfill lazily on the next update.
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    // onDelete is set null so losing a user doesn't nuke the audit
+    // trail on their historic rows.
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
     archivedAt: timestamp("archived_at"),
@@ -164,8 +200,12 @@ export const orders = pgTable(
   "orders",
   {
     id: text("id").primaryKey(),
-    enquiryId: text("enquiry_id"),
-    companyId: text("company_id").notNull(),
+    enquiryId: text("enquiry_id").references(() => enquiries.id, {
+      onDelete: "cascade",
+    }),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     version: integer("version").default(1),
     status: orderStatusEnum("status").default("draft"),
     totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
@@ -175,8 +215,12 @@ export const orders = pgTable(
     // has changed since. Nullable because older rows were created before
     // the pricing engine was wired in.
     pricingSnapshot: text("pricing_snapshot"),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -186,7 +230,9 @@ export const orderItems = pgTable(
   "order_items",
   {
     id: text("id").primaryKey(),
-    orderId: text("order_id").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
     description: text("description").notNull(),
     category: varchar("category", { length: 100 }),
     quantity: integer("quantity").notNull(),
@@ -200,8 +246,12 @@ export const orderItems = pgTable(
     baseCost: decimal("base_cost", { precision: 10, scale: 2 }),
     unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
     totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
   }
 );
@@ -210,8 +260,12 @@ export const proposals = pgTable(
   "proposals",
   {
     id: text("id").primaryKey(),
-    orderId: text("order_id").notNull(),
-    companyId: text("company_id").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     status: proposalStatusEnum("status").default("draft"),
     sentAt: timestamp("sent_at"),
     // Email subject line when this proposal is sent. Optional because
@@ -229,8 +283,12 @@ export const proposals = pgTable(
     acceptedAt: timestamp("accepted_at"),
     rejectedAt: timestamp("rejected_at"),
     content: text("content"),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -240,8 +298,12 @@ export const invoices = pgTable(
   "invoices",
   {
     id: text("id").primaryKey(),
-    orderId: text("order_id").notNull(),
-    companyId: text("company_id").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
     status: invoiceStatusEnum("status").default("draft"),
     // Subtotal is the sum of order line items (pre-VAT). VAT rate is
@@ -264,8 +326,12 @@ export const invoices = pgTable(
     paymentMethod: varchar("payment_method", { length: 50 }),
     dueDate: timestamp("due_date"),
     paidAt: timestamp("paid_at"),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -275,15 +341,23 @@ export const wholesaleOrders = pgTable(
   "wholesale_orders",
   {
     id: text("id").primaryKey(),
-    orderId: text("order_id").notNull(),
-    companyId: text("company_id").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     supplier: varchar("supplier", { length: 255 }).notNull(),
     items: text("items"),
     status: wholesaleStatusEnum("status").default("pending"),
     orderDate: timestamp("order_date").defaultNow(),
     receivedDate: timestamp("received_date"),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -293,8 +367,12 @@ export const productionSchedules = pgTable(
   "production_schedules",
   {
     id: text("id").primaryKey(),
-    orderId: text("order_id").notNull(),
-    companyId: text("company_id").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     // productionDate is the date the arrangements are built -- usually
     // a day or two before the event itself. Previously called
     // eventDate but that was misleading because the event typically
@@ -309,8 +387,12 @@ export const productionSchedules = pgTable(
     tasks: text("tasks"),
     notes: text("notes"),
     status: productionStatusEnum("status").default("not_started"),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -320,8 +402,12 @@ export const deliverySchedules = pgTable(
   "delivery_schedules",
   {
     id: text("id").primaryKey(),
-    orderId: text("order_id").notNull(),
-    companyId: text("company_id").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     // deliveryDate is when the arrangements leave the studio --
     // usually the day of the event. Previously called eventDate,
     // but production and delivery both had an eventDate field which
@@ -330,9 +416,16 @@ export const deliverySchedules = pgTable(
     deliveryAddress: text("delivery_address"),
     // Optional pointer to a saved venue for quick reuse. Nullable so
     // ad-hoc addresses still work without forcing a venue record.
-    venueId: text("venue_id"),
+    // onDelete: set null means deleting a venue doesn't nuke
+    // historical delivery records -- the address text is already
+    // persisted separately in deliveryAddress.
+    venueId: text("venue_id").references(() => venues.id, {
+      onDelete: "set null",
+    }),
     // Driver is the user id of whoever will drive the delivery run.
-    driverId: text("driver_id"),
+    driverId: text("driver_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     // Time slot is a free-form string like "09:00 - 10:30" so tenants
     // aren't forced into a fixed slot schema. Structured enough for
     // display, flexible enough for real world operations.
@@ -340,8 +433,12 @@ export const deliverySchedules = pgTable(
     items: text("items"),
     notes: text("notes"),
     status: deliveryStatusEnum("status").default("pending"),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -354,14 +451,20 @@ export const deliverySchedules = pgTable(
  */
 export const venues = pgTable("venues", {
   id: text("id").primaryKey(),
-  companyId: text("company_id").notNull(),
+  companyId: text("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 200 }).notNull(),
   address: text("address"),
   contactName: varchar("contact_name", { length: 200 }),
   contactPhone: varchar("contact_phone", { length: 50 }),
   notes: text("notes"),
-  createdBy: text("created_by"),
-  updatedBy: text("updated_by"),
+  createdBy: text("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedBy: text("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -370,7 +473,10 @@ export const priceSettings = pgTable(
   "price_settings",
   {
     id: text("id").primaryKey(),
-    companyId: text("company_id").notNull().unique(),
+    companyId: text("company_id")
+      .notNull()
+      .unique()
+      .references(() => companies.id, { onDelete: "cascade" }),
     multiple: decimal("multiple", { precision: 5, scale: 2 }).default("2.5"),
     flowerBuffer: decimal("flower_buffer", { precision: 5, scale: 2 }).default(
       "1.15"
@@ -396,7 +502,10 @@ export const proposalSettings = pgTable(
   "proposal_settings",
   {
     id: text("id").primaryKey(),
-    companyId: text("company_id").notNull().unique(),
+    companyId: text("company_id")
+      .notNull()
+      .unique()
+      .references(() => companies.id, { onDelete: "cascade" }),
     headerText: text("header_text"),
     footerText: text("footer_text"),
     termsAndConditions: text("terms_and_conditions"),
@@ -409,7 +518,10 @@ export const invoiceSettings = pgTable(
   "invoice_settings",
   {
     id: text("id").primaryKey(),
-    companyId: text("company_id").notNull().unique(),
+    companyId: text("company_id")
+      .notNull()
+      .unique()
+      .references(() => companies.id, { onDelete: "cascade" }),
     paymentTerms: text("payment_terms"),
     bankDetails: text("bank_details"),
     notes: text("notes"),
@@ -431,7 +543,10 @@ export const subscriptions = pgTable(
   "subscriptions",
   {
     id: text("id").primaryKey(),
-    companyId: text("company_id").notNull().unique(),
+    companyId: text("company_id")
+      .notNull()
+      .unique()
+      .references(() => companies.id, { onDelete: "cascade" }),
     plan: subscriptionPlanEnum("plan").default("essential"),
     status: subscriptionStatusEnum("status").default("active"),
     startDate: timestamp("start_date").defaultNow(),
@@ -446,7 +561,9 @@ export const products = pgTable(
   "products",
   {
     id: text("id").primaryKey(),
-    companyId: text("company_id").notNull(),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     category: productCategoryEnum("category").notNull(),
     subcategory: varchar("subcategory", { length: 100 }),
@@ -459,8 +576,12 @@ export const products = pgTable(
     supplier: varchar("supplier", { length: 255 }),
     notes: text("notes"),
     isActive: boolean("is_active").notNull().default(true),
-    createdBy: text("created_by"),
-    updatedBy: text("updated_by"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    updatedBy: text("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
