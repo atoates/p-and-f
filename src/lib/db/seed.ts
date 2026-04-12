@@ -73,6 +73,8 @@ async function createTables(client: any) {
   // Drop tables in reverse dependency order. Every table that
   // schema.ts defines must appear here so we get a clean slate.
   const tables = [
+    "bundle_items",
+    "bundles",
     "delivery_schedule_items",
     "production_schedule_items",
     "wholesale_order_items",
@@ -431,6 +433,34 @@ async function createTables(client: any) {
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW(),
       FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  await client.query(`
+    CREATE TABLE bundles (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      updated_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  await client.query(`
+    CREATE TABLE bundle_items (
+      id TEXT PRIMARY KEY,
+      bundle_id TEXT NOT NULL,
+      product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+      description VARCHAR(500) NOT NULL,
+      category product_category,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY (bundle_id) REFERENCES bundles(id) ON DELETE CASCADE
     )
   `);
 
@@ -1409,6 +1439,169 @@ async function seedData(client: any) {
           item.description,
           item.category,
           item.quantity,
+        ]
+      );
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Seed product bundles -- pre-built arrangements that explode into
+  // individual line items when added to an order.
+  // -----------------------------------------------------------------------
+
+  // First, look up product IDs by name so bundle items reference real
+  // products. We query the DB rather than tracking IDs in-memory
+  // because the product inserts above use randomUUID().
+  const productRows = await client.query(
+    `SELECT id, name, colour FROM products WHERE company_id = $1`,
+    [COMPANY_ID]
+  );
+  const findProduct = (name: string, colour?: string) => {
+    const row = productRows.rows.find(
+      (r: any) =>
+        r.name === name && (!colour || r.colour === colour)
+    );
+    return row?.id || null;
+  };
+
+  const bundleDefs = [
+    {
+      name: "Bridal Bouquet",
+      description:
+        "Classic hand-tied bridal bouquet with garden roses, foliage and ribbon finish",
+      items: [
+        { product: "Juliet", colour: "Peach", category: "flower", qty: 7 },
+        { product: "Sweet Avalanche", colour: "Cream", category: "flower", qty: 5 },
+        { product: "Lisianthus White", colour: "White", category: "flower", qty: 5 },
+        { product: "Eucalyptus Seeded", colour: "Green", category: "foliage", qty: 5 },
+        { product: "Ruscus Italian", colour: "Dark Green", category: "foliage", qty: 3 },
+        { product: "Satin Ribbon 25mm", colour: "White", category: "ribbon", qty: 2 },
+        { product: "Wire 22 Gauge", colour: "Green", category: "sundry", qty: 1 },
+        { product: "Stem Tape", colour: "Green", category: "sundry", qty: 1 },
+      ],
+    },
+    {
+      name: "Bridesmaid Posy",
+      description:
+        "Smaller hand-tied posy complementing the bridal bouquet",
+      items: [
+        { product: "Sweet Avalanche", colour: "Cream", category: "flower", qty: 3 },
+        { product: "Quicksand", colour: "Champagne", category: "flower", qty: 3 },
+        { product: "Gypsophila White", colour: "White", category: "flower", qty: 3 },
+        { product: "Eucalyptus Parvifolia", colour: "Light Green", category: "foliage", qty: 3 },
+        { product: "Satin Ribbon 25mm", colour: "White", category: "ribbon", qty: 1 },
+        { product: "Stem Tape", colour: "Green", category: "sundry", qty: 1 },
+      ],
+    },
+    {
+      name: "Table Centrepiece",
+      description:
+        "Low arrangement in a fish bowl vase, suitable for round guest tables",
+      items: [
+        { product: "Avalanche", colour: "White", category: "flower", qty: 5 },
+        { product: "Quicksand", colour: "Champagne", category: "flower", qty: 3 },
+        { product: "Lisianthus White", colour: "White", category: "flower", qty: 3 },
+        { product: "Gypsophila White", colour: "White", category: "flower", qty: 2 },
+        { product: "Eucalyptus Silver Dollar", colour: "Silver Green", category: "foliage", qty: 3 },
+        { product: "Ruscus Italian", colour: "Dark Green", category: "foliage", qty: 2 },
+        { product: "Fish Bowl Vase Medium", colour: "Clear", category: "container", qty: 1 },
+        { product: "Oasis Brick", colour: "Green", category: "sundry", qty: 1 },
+      ],
+    },
+    {
+      name: "Buttonhole",
+      description:
+        "Single rose buttonhole with foliage and pin finish for groom or groomsmen",
+      items: [
+        { product: "Avalanche", colour: "White", category: "flower", qty: 1 },
+        { product: "Eucalyptus Parvifolia", colour: "Light Green", category: "foliage", qty: 1 },
+        { product: "Wire 22 Gauge", colour: "Green", category: "sundry", qty: 1 },
+        { product: "Stem Tape", colour: "Green", category: "sundry", qty: 1 },
+        { product: "Pearl Pins", colour: "White", category: "sundry", qty: 1 },
+      ],
+    },
+    {
+      name: "Corsage",
+      description:
+        "Wrist or pin-on corsage with spray roses and foliage, ideal for mothers of the bride/groom",
+      items: [
+        { product: "Bombastic Spray", colour: "Red", category: "flower", qty: 1 },
+        { product: "Gypsophila White", colour: "White", category: "flower", qty: 1 },
+        { product: "Eucalyptus Parvifolia", colour: "Light Green", category: "foliage", qty: 1 },
+        { product: "Wire 22 Gauge", colour: "Green", category: "sundry", qty: 1 },
+        { product: "Satin Ribbon 25mm", colour: "White", category: "ribbon", qty: 1 },
+      ],
+    },
+    {
+      name: "Ceremony Arch Arrangement",
+      description:
+        "Large asymmetrical arrangement for one side of a ceremony arch or doorway",
+      items: [
+        { product: "Hydrangea White", colour: "White", category: "flower", qty: 5 },
+        { product: "Juliet", colour: "Peach", category: "flower", qty: 7 },
+        { product: "Patience", colour: "Ivory", category: "flower", qty: 5 },
+        { product: "Lisianthus Pink", colour: "Pink", category: "flower", qty: 5 },
+        { product: "Stock White", colour: "White", category: "flower", qty: 5 },
+        { product: "Eucalyptus Seeded", colour: "Green", category: "foliage", qty: 10 },
+        { product: "Ruscus Italian", colour: "Dark Green", category: "foliage", qty: 8 },
+        { product: "Ivy Trails", colour: "Dark Green", category: "foliage", qty: 5 },
+        { product: "Oasis Brick", colour: "Green", category: "sundry", qty: 3 },
+        { product: "Wire 20 Gauge", colour: "Green", category: "sundry", qty: 2 },
+        { product: "Cable Ties", colour: "Black", category: "sundry", qty: 1 },
+      ],
+    },
+    {
+      name: "Pew End",
+      description:
+        "Small tied arrangement for church pew or aisle chair decoration",
+      items: [
+        { product: "Avalanche", colour: "White", category: "flower", qty: 2 },
+        { product: "Gypsophila White", colour: "White", category: "flower", qty: 2 },
+        { product: "Eucalyptus Seeded", colour: "Green", category: "foliage", qty: 2 },
+        { product: "Organza Ribbon", colour: "White", category: "ribbon", qty: 2 },
+        { product: "Wire 22 Gauge", colour: "Green", category: "sundry", qty: 1 },
+      ],
+    },
+    {
+      name: "Top Table Runner",
+      description:
+        "Long foliage garland with focal flowers for the top table or sweetheart table",
+      items: [
+        { product: "Juliet", colour: "Peach", category: "flower", qty: 5 },
+        { product: "Sweet Avalanche", colour: "Cream", category: "flower", qty: 5 },
+        { product: "Lisianthus White", colour: "White", category: "flower", qty: 4 },
+        { product: "Freesia White", colour: "White", category: "flower", qty: 4 },
+        { product: "Eucalyptus Seeded", colour: "Green", category: "foliage", qty: 8 },
+        { product: "Eucalyptus Silver Dollar", colour: "Silver Green", category: "foliage", qty: 5 },
+        { product: "Ruscus Italian", colour: "Dark Green", category: "foliage", qty: 5 },
+        { product: "Ivy Trails", colour: "Dark Green", category: "foliage", qty: 3 },
+      ],
+    },
+  ];
+
+  for (const bd of bundleDefs) {
+    const bundleId = randomUUID();
+    await client.query(
+      `INSERT INTO bundles (id, company_id, name, description, is_active, created_by, updated_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, true, $5, $5, NOW(), NOW())`,
+      [bundleId, COMPANY_ID, bd.name, bd.description, ADMIN_USER_ID]
+    );
+
+    for (const bi of bd.items) {
+      const productId = findProduct(bi.product, bi.colour);
+      const desc = bi.colour
+        ? `${bi.product} — ${bi.colour}`
+        : bi.product;
+      await client.query(
+        `INSERT INTO bundle_items (id, bundle_id, product_id, description, category, quantity, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+        [
+          randomUUID(),
+          bundleId,
+          productId,
+          desc,
+          bi.category,
+          bi.qty,
         ]
       );
     }

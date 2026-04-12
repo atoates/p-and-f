@@ -5,7 +5,10 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Trash2, Plus } from "lucide-react";
-import { ProductAutocomplete } from "./product-autocomplete";
+import {
+  ProductAutocomplete,
+  type Bundle,
+} from "./product-autocomplete";
 import { useModalA11y } from "@/hooks/use-modal-a11y";
 import { ORDER_STATUSES, type OrderStatus } from "@/types/orders";
 
@@ -107,6 +110,7 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [enquiriesLoading, setEnquiriesLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
+  const [bundles, setBundles] = useState<Bundle[]>([]);
   const [rules, setRules] = useState<PricingRulesShape | null>(null);
   const [formData, setFormData] = useState<Partial<Order>>({
     enquiryId: "",
@@ -143,6 +147,17 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
       }
     };
 
+    const fetchBundles = async () => {
+      try {
+        const response = await fetch("/api/bundles");
+        if (response.ok) {
+          setBundles(await response.json());
+        }
+      } catch {
+        // Bundles are optional
+      }
+    };
+
     // Fetch the tenant's pricing rules so the modal can preview
     // marked-up unit prices as the user types. If this fails we
     // degrade gracefully to "no markup" preview -- the server still
@@ -166,6 +181,7 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
 
     fetchEnquiries();
     fetchProducts();
+    fetchBundles();
     fetchRules();
   }, []);
 
@@ -282,6 +298,42 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
     };
 
     setFormData((prev) => ({ ...prev, items }));
+  };
+
+  const handleBundleSelect = (bundle: Bundle) => {
+    const newItems: OrderItem[] = bundle.items.map((bi) => {
+      // Use the linked product's wholesale price as base cost when available
+      const prod = bi.product;
+      const baseCost = prod?.wholesalePrice
+        ? parseFloat(prod.wholesalePrice)
+        : prod?.retailPrice
+        ? parseFloat(prod.retailPrice)
+        : 0;
+      const category = bi.category || prod?.category || "";
+      const unitPrice =
+        baseCost > 0 ? deriveUnitPrice(baseCost, category, rules) : 0;
+      const quantity = bi.quantity || 1;
+
+      return {
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        description:
+          prod
+            ? prod.name + (prod.colour ? ` — ${prod.colour}` : "")
+            : bi.description,
+        category,
+        baseCost: baseCost > 0 ? baseCost.toFixed(2) : "",
+        quantity,
+        unitPrice: unitPrice.toFixed(2),
+        totalPrice: (quantity * unitPrice).toFixed(2),
+      };
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      items: [...(prev.items || []), ...newItems],
+    }));
+
+    toast.success(`Added ${bundle.name} (${newItems.length} items)`);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -434,20 +486,22 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
                   key={item.id}
                   className="border border-gray-200 rounded-lg p-4 space-y-3"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-8 gap-3">
-                    <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 md:grid-cols-9 gap-3">
+                    <div className="md:col-span-3">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Description
                       </label>
                       <ProductAutocomplete
                         value={item.description}
                         products={products}
+                        bundles={bundles}
                         onChange={(val) =>
                           handleItemChange(index, "description", val)
                         }
                         onSelect={(product) =>
                           handleProductSelect(index, product)
                         }
+                        onSelectBundle={handleBundleSelect}
                         placeholder="Search products or type freely..."
                       />
                     </div>

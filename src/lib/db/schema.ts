@@ -898,3 +898,58 @@ export const productsRelations = relations(products, ({ one }) => ({
     references: [companies.id],
   }),
 }));
+
+// ---------------------------------------------------------------------------
+// Product bundles -- pre-built arrangements that explode into line items
+// ---------------------------------------------------------------------------
+
+export const bundles = pgTable("bundles", {
+  id: text("id").primaryKey(),
+  companyId: text("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: text("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedBy: text("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const bundleItems = pgTable("bundle_items", {
+  id: text("id").primaryKey(),
+  bundleId: text("bundle_id")
+    .notNull()
+    .references(() => bundles.id, { onDelete: "cascade" }),
+  productId: text("product_id").references(() => products.id, {
+    onDelete: "set null",
+  }),
+  description: varchar("description", { length: 500 }).notNull(),
+  category: productCategoryEnum("category"),
+  quantity: integer("quantity").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const bundlesRelations = relations(bundles, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [bundles.companyId],
+    references: [companies.id],
+  }),
+  items: many(bundleItems),
+}));
+
+export const bundleItemsRelations = relations(bundleItems, ({ one }) => ({
+  bundle: one(bundles, {
+    fields: [bundleItems.bundleId],
+    references: [bundles.id],
+  }),
+  product: one(products, {
+    fields: [bundleItems.productId],
+    references: [products.id],
+  }),
+}));
