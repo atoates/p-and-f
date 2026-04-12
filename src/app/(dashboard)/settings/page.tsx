@@ -309,15 +309,15 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      <div className="flex gap-6">
+      <div className="flex flex-col sm:flex-row gap-6">
         {/* Tabs */}
-        <div className="w-48 flex-shrink-0">
-          <nav className="space-y-1">
+        <div className="sm:w-48 flex-shrink-0">
+          <nav className="flex sm:block gap-1 sm:gap-0 sm:space-y-1 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                className={`flex-shrink-0 sm:w-full text-left px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === tab.id
                     ? "bg-[#1B4332] text-white"
                     : "text-gray-700 hover:bg-gray-100"
@@ -330,7 +330,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {activeTab === "company" && (
             <Card>
               <CardHeader>

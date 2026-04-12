@@ -324,7 +324,7 @@ export default function EnquiriesPage() {
               <p className="text-gray-400 mt-1">Try adjusting your filters or add a new enquiry</p>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">

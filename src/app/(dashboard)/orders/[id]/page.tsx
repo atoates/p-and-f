@@ -500,7 +500,8 @@ export default function OrderDetailPage() {
                 items.
               </p>
             ) : (
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
@@ -542,6 +543,7 @@ export default function OrderDetailPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </CardBody>
         </Card>
