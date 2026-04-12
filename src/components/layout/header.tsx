@@ -5,10 +5,10 @@ import { Settings } from "lucide-react";
 
 export function Header() {
   return (
-    <header className="fixed top-0 left-0 lg:left-64 right-0 bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-8 z-30">
+    <header className="fixed top-0 left-0 lg:left-64 right-0 bg-white/80 backdrop-blur-md border-b border-gray-200/60 h-16 flex items-center justify-between px-4 sm:px-8 z-30">
       {/* Spacer for mobile hamburger button */}
       <div className="lg:hidden w-12" />
-      <h1 className="text-lg sm:text-2xl font-semibold text-gray-900">
+      <h1 className="text-lg sm:text-xl font-serif font-semibold text-gray-800 tracking-tight">
         Dashboard
       </h1>
 
@@ -16,9 +16,9 @@ export function Header() {
         <Link
           href="/settings"
           aria-label="Settings"
-          className="p-2 text-gray-600 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-green rounded-md"
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-150"
         >
-          <Settings size={20} className="sm:w-6 sm:h-6" />
+          <Settings size={18} className="sm:w-5 sm:h-5" />
         </Link>
       </div>
     </header>

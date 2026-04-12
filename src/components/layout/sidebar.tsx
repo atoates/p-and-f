@@ -37,8 +37,6 @@ const navigationItems = [
 
 const settingsItems = [
   { name: "Settings", href: "/settings", icon: Settings },
-  // The Subscription entry only exists when the billing feature
-  // flag is on. See src/lib/feature-flags.ts.
   ...(featureFlags.subscriptionBilling
     ? [{ name: "Subscription", href: "/subscription", icon: CreditCard }]
     : []),
@@ -49,12 +47,10 @@ export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile nav when route changes
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile nav is open
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
@@ -72,22 +68,25 @@ export function Sidebar() {
 
   const navContent = (
     <>
-      <div className="p-6 border-b border-light-green flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-          <Flower size={24} />
-          <span>Petal & Prosper</span>
+      {/* Brand */}
+      <div className="px-5 pt-7 pb-6">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors">
+            <Flower size={20} className="text-sage-200" />
+          </div>
+          <div>
+            <span className="font-serif font-bold text-[15px] tracking-tight text-white block leading-tight">
+              Petal & Prosper
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.12em] text-sage-400 font-medium">
+              Floristry Studio
+            </span>
+          </div>
         </Link>
-        {/* Close button on mobile */}
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="lg:hidden p-1 text-white hover:text-soft-cream"
-          aria-label="Close menu"
-        >
-          <X size={24} />
-        </button>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      {/* Main navigation */}
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -96,20 +95,30 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 ${
                 isActive
-                  ? "bg-light-green text-white"
-                  : "text-soft-cream hover:bg-light-green"
+                  ? "bg-white/15 text-white shadow-sm"
+                  : "text-sage-300 hover:text-white hover:bg-white/[0.07]"
               }`}
             >
-              <Icon size={20} />
+              <Icon
+                size={18}
+                strokeWidth={isActive ? 2 : 1.5}
+                className={`shrink-0 transition-colors ${
+                  isActive ? "text-sage-200" : "text-sage-400 group-hover:text-sage-300"
+                }`}
+              />
               <span>{item.name}</span>
+              {isActive && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sage-300" />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-light-green p-4 space-y-1">
+      {/* Bottom settings */}
+      <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
         {settingsItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -118,13 +127,19 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 ${
                 isActive
-                  ? "bg-light-green text-white"
-                  : "text-soft-cream hover:bg-light-green"
+                  ? "bg-white/15 text-white shadow-sm"
+                  : "text-sage-300 hover:text-white hover:bg-white/[0.07]"
               }`}
             >
-              <Icon size={20} />
+              <Icon
+                size={18}
+                strokeWidth={isActive ? 2 : 1.5}
+                className={`shrink-0 transition-colors ${
+                  isActive ? "text-sage-200" : "text-sage-400 group-hover:text-sage-300"
+                }`}
+              />
               <span>{item.name}</span>
             </Link>
           );
@@ -132,9 +147,9 @@ export function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-soft-cream hover:bg-light-green transition-colors"
+          className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sage-300 hover:text-white hover:bg-white/[0.07] transition-all duration-150"
         >
-          <LogOut size={20} />
+          <LogOut size={18} strokeWidth={1.5} className="shrink-0 text-sage-400 group-hover:text-sage-300 transition-colors" />
           <span>Logout</span>
         </button>
       </div>
@@ -143,34 +158,43 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile hamburger button */}
+      {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-primary-green text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-dark-green text-white rounded-xl shadow-elevated hover:shadow-glow-green transition-shadow"
         aria-label="Open menu"
       >
-        <Menu size={24} />
+        <Menu size={20} />
       </button>
 
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Mobile sidebar drawer */}
       <aside
-        className={`lg:hidden fixed left-0 top-0 w-72 bg-primary-green text-white h-screen z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed left-0 top-0 w-72 bg-gradient-to-b from-dark-green to-primary-green text-white h-screen z-50 flex flex-col shadow-sidebar transform transition-transform duration-300 ease-in-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
+        <div className="flex items-center justify-end px-3 pt-3">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-2 text-sage-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
         {navContent}
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 bg-primary-green text-white h-screen fixed left-0 top-0 overflow-y-auto flex-col">
+      <aside className="hidden lg:flex w-64 bg-gradient-to-b from-dark-green to-primary-green text-white h-screen fixed left-0 top-0 overflow-y-auto flex-col shadow-sidebar">
         {navContent}
       </aside>
     </>
