@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X, Upload } from "lucide-react";
+import { Plus, X, Upload, Package, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { ColDef } from "ag-grid-community";
 import { DataGrid } from "@/components/ui/data-grid";
 import { CurrencyRenderer, CategoryBadgeRenderer } from "@/components/ui/grid-renderers";
 import { Can } from "@/components/auth/can";
 import toast from "react-hot-toast";
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 interface Product {
   id: string;
@@ -24,6 +28,23 @@ interface Product {
   isActive: boolean;
 }
 
+interface BundleItemShape {
+  id?: string;
+  productId?: string | null;
+  description: string;
+  category?: string | null;
+  quantity: number;
+  product?: Product | null;
+}
+
+interface Bundle {
+  id: string;
+  name: string;
+  description?: string | null;
+  isActive?: boolean;
+  items: BundleItemShape[];
+}
+
 interface FormData {
   name: string;
   category: string;
@@ -35,7 +56,37 @@ interface FormData {
   supplier: string;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const categoryMap: Record<string, string> = {
+  Flowers: "flower",
+  Foliage: "foliage",
+  Sundries: "sundry",
+  Containers: "container",
+  Ribbons: "ribbon",
+};
+const categories = ["All", "Flowers", "Foliage", "Sundries", "Containers", "Ribbons"];
+const categoryOptions = ["Flowers", "Foliage", "Sundries", "Containers", "Ribbons"];
+const seasonOptions = ["Spring", "Summer", "Autumn", "Winter", "Year Round"];
+const BUNDLE_CATEGORY_OPTIONS = [
+  { value: "flower", label: "Flower" },
+  { value: "foliage", label: "Foliage" },
+  { value: "sundry", label: "Sundry" },
+  { value: "container", label: "Container" },
+  { value: "ribbon", label: "Ribbon" },
+  { value: "accessory", label: "Accessory" },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Page component                                                     */
+/* ------------------------------------------------------------------ */
+
 export default function LibrariesPage() {
+  const [activeTab, setActiveTab] = useState<"products" | "bundles">("products");
+
+  /* ---------- Products state ---------- */
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +106,7 @@ export default function LibrariesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // --- CSV import state (#22) ---
+  /* ---------- CSV import state ---------- */
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importText, setImportText] = useState<string>("");
@@ -69,14 +120,35 @@ export default function LibrariesPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
+  /* ---------- Bundles state ---------- */
+  const [bundlesData, setBundlesData] = useState<Bundle[]>([]);
+  const [bundlesLoading, setBundlesLoading] = useState(true);
+  const [showBundleModal, setShowBundleModal] = useState(false);
+  const [editingBundle, setEditingBundle] = useState<Bundle | null>(null);
+  const [bundleForm, setBundleForm] = useState<{
+    name: string;
+    description: string;
+    items: Array<{
+      key: string;
+      productId: string;
+      description: string;
+      category: string;
+      quantity: number;
+    }>;
+  }>({ name: "", description: "", items: [] });
+  const [bundleSubmitting, setBundleSubmitting] = useState(false);
+  const [expandedBundle, setExpandedBundle] = useState<string | null>(null);
+
+  /* ------------------------------------------------------------------ */
+  /*  Data fetching                                                      */
+  /* ------------------------------------------------------------------ */
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
         const response = await fetch("/api/products");
-        if (!response.ok) {
-          throw new Error("Failed to fetch products");
-        }
+        if (!response.ok) throw new Error("Failed to fetch products");
         const data = await response.json();
         setProducts(data);
       } catch (err) {
@@ -86,32 +158,37 @@ export default function LibrariesPage() {
       }
     };
 
+    const fetchBundles = async () => {
+      try {
+        setBundlesLoading(true);
+        const response = await fetch("/api/bundles");
+        if (response.ok) {
+          setBundlesData(await response.json());
+        }
+      } catch {
+        // Bundles are optional
+      } finally {
+        setBundlesLoading(false);
+      }
+    };
+
     fetchProducts();
+    fetchBundles();
   }, []);
 
-  const categoryMap: Record<string, string> = {
-    "Flowers": "flower", "Foliage": "foliage", "Sundries": "sundry",
-    "Containers": "container", "Ribbons": "ribbon",
-  };
-  const categories = ["All", "Flowers", "Foliage", "Sundries", "Containers", "Ribbons"];
-  const categoryOptions = ["Flowers", "Foliage", "Sundries", "Containers", "Ribbons"];
-  const seasonOptions = ["Spring", "Summer", "Autumn", "Winter", "Year Round"];
+  /* ------------------------------------------------------------------ */
+  /*  Products helpers                                                   */
+  /* ------------------------------------------------------------------ */
 
-  const filteredProducts = selectedCategory && selectedCategory !== "All"
-    ? products.filter((p) => p.category === categoryMap[selectedCategory])
-    : products;
+  const filteredProducts =
+    selectedCategory && selectedCategory !== "All"
+      ? products.filter((p) => p.category === categoryMap[selectedCategory])
+      : products;
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      errors.name = "Product name is required";
-    }
-
-    if (!formData.category) {
-      errors.category = "Category is required";
-    }
-
+    if (!formData.name.trim()) errors.name = "Product name is required";
+    if (!formData.category) errors.category = "Category is required";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -120,32 +197,21 @@ export default function LibrariesPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (formErrors[name]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setFormErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const handleCreateProduct = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setSubmitting(true);
     setSubmitError(null);
 
     try {
       const response = await fetch("/api/products", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           category: categoryMap[formData.category] || formData.category,
@@ -154,14 +220,11 @@ export default function LibrariesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.message || "Failed to create product"
-        );
+        throw new Error(errorData.message || "Failed to create product");
       }
 
       const newProduct = await response.json();
       setProducts((prev) => [...prev, newProduct]);
-
       setShowCreateModal(false);
       setFormData({
         name: "",
@@ -197,11 +260,10 @@ export default function LibrariesPage() {
     setSubmitError(null);
   };
 
-  // --- CSV import (#22) ---
-  // Two-step flow: pick file -> dry-run preview -> commit. The
-  // preview protects the user from dropping a malformed price list
-  // and silently corrupting their library. Invalid rows are
-  // reported and skipped but never block the valid ones.
+  /* ------------------------------------------------------------------ */
+  /*  CSV import                                                         */
+  /* ------------------------------------------------------------------ */
+
   const handleImportFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -217,9 +279,7 @@ export default function LibrariesPage() {
       const text = await file.text();
       setImportText(text);
     } catch (err) {
-      setImportError(
-        err instanceof Error ? err.message : "Failed to read file"
-      );
+      setImportError(err instanceof Error ? err.message : "Failed to read file");
       setImportText("");
     }
   };
@@ -238,9 +298,7 @@ export default function LibrariesPage() {
         body: JSON.stringify({ csv: importText, dryRun }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || data.error || "Import failed");
-      }
+      if (!res.ok) throw new Error(data.message || data.error || "Import failed");
       setImportPreview({
         total: data.total,
         valid: data.valid,
@@ -252,11 +310,8 @@ export default function LibrariesPage() {
           `Imported ${data.inserted} product${data.inserted === 1 ? "" : "s"}` +
             (data.failed > 0 ? ` (${data.failed} skipped)` : "")
         );
-        // Refresh the grid so the new rows show up immediately.
         const refreshed = await fetch("/api/products");
-        if (refreshed.ok) {
-          setProducts(await refreshed.json());
-        }
+        if (refreshed.ok) setProducts(await refreshed.json());
         closeImportModal();
       }
     } catch (err) {
@@ -272,94 +327,228 @@ export default function LibrariesPage() {
     setImportText("");
     setImportPreview(null);
     setImportError(null);
-    if (importInputRef.current) {
-      importInputRef.current.value = "";
+    if (importInputRef.current) importInputRef.current.value = "";
+  };
+
+  /* ------------------------------------------------------------------ */
+  /*  Bundles helpers                                                    */
+  /* ------------------------------------------------------------------ */
+
+  // Product lookup for the bundle item builder
+  const productsByCategory = useMemo(() => {
+    const map: Record<string, Product[]> = {};
+    for (const p of products) {
+      const cat = p.category || "other";
+      if (!map[cat]) map[cat] = [];
+      map[cat].push(p);
+    }
+    return map;
+  }, [products]);
+
+  const openBundleModal = (bundle?: Bundle) => {
+    if (bundle) {
+      setEditingBundle(bundle);
+      setBundleForm({
+        name: bundle.name,
+        description: bundle.description || "",
+        items: bundle.items.map((bi) => ({
+          key: bi.id || `item-${Math.random().toString(36).slice(2)}`,
+          productId: bi.productId || "",
+          description: bi.description,
+          category: bi.category || "",
+          quantity: bi.quantity,
+        })),
+      });
+    } else {
+      setEditingBundle(null);
+      setBundleForm({ name: "", description: "", items: [] });
+    }
+    setShowBundleModal(true);
+  };
+
+  const closeBundleModal = () => {
+    setShowBundleModal(false);
+    setEditingBundle(null);
+    setBundleForm({ name: "", description: "", items: [] });
+  };
+
+  const addBundleItem = () => {
+    setBundleForm((prev) => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        {
+          key: `item-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          productId: "",
+          description: "",
+          category: "",
+          quantity: 1,
+        },
+      ],
+    }));
+  };
+
+  const removeBundleItem = (index: number) => {
+    setBundleForm((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateBundleItem = (index: number, field: string, value: string | number) => {
+    setBundleForm((prev) => {
+      const items = [...prev.items];
+      const item = { ...items[index], [field]: value };
+
+      // When a product is selected, auto-fill description and category
+      if (field === "productId" && typeof value === "string" && value) {
+        const prod = products.find((p) => p.id === value);
+        if (prod) {
+          item.description = prod.name + (prod.colour ? ` - ${prod.colour}` : "");
+          item.category = prod.category || "";
+        }
+      }
+
+      items[index] = item;
+      return { ...prev, items };
+    });
+  };
+
+  const handleSaveBundle = async () => {
+    if (!bundleForm.name.trim()) {
+      toast.error("Bundle name is required");
+      return;
+    }
+    if (bundleForm.items.length === 0) {
+      toast.error("Add at least one item to the bundle");
+      return;
+    }
+
+    setBundleSubmitting(true);
+    try {
+      const payload = {
+        name: bundleForm.name.trim(),
+        description: bundleForm.description.trim() || null,
+        items: bundleForm.items.map((bi) => ({
+          productId: bi.productId || null,
+          description: bi.description || "Untitled item",
+          category: bi.category || null,
+          quantity: bi.quantity || 1,
+        })),
+      };
+
+      const url = editingBundle
+        ? `/api/bundles/${editingBundle.id}`
+        : "/api/bundles";
+      const method = editingBundle ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to save bundle");
+      }
+
+      const saved: Bundle = await response.json();
+
+      if (editingBundle) {
+        setBundlesData((prev) =>
+          prev.map((b) => (b.id === saved.id ? saved : b))
+        );
+        toast.success("Bundle updated");
+      } else {
+        setBundlesData((prev) => [saved, ...prev]);
+        toast.success("Bundle created");
+      }
+
+      closeBundleModal();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save bundle");
+    } finally {
+      setBundleSubmitting(false);
     }
   };
 
+  const handleDeleteBundle = async (bundleId: string) => {
+    if (!confirm("Are you sure you want to delete this bundle?")) return;
+    try {
+      const response = await fetch(`/api/bundles/${bundleId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete bundle");
+      setBundlesData((prev) => prev.filter((b) => b.id !== bundleId));
+      toast.success("Bundle deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete bundle");
+    }
+  };
+
+  /* ------------------------------------------------------------------ */
+  /*  Column defs                                                        */
+  /* ------------------------------------------------------------------ */
+
   const columnDefs: ColDef[] = [
-    {
-      field: "name",
-      headerName: "Name",
-      width: 180,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "category",
-      headerName: "Category",
-      width: 140,
-      cellRenderer: CategoryBadgeRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "subcategory",
-      headerName: "Subcategory",
-      width: 140,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "wholesalePrice",
-      headerName: "Wholesale Price",
-      width: 140,
-      cellRenderer: CurrencyRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "retailPrice",
-      headerName: "Retail Price",
-      width: 140,
-      cellRenderer: CurrencyRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "colour",
-      headerName: "Colour",
-      width: 120,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "season",
-      headerName: "Season",
-      width: 120,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "supplier",
-      headerName: "Supplier",
-      width: 140,
-      sortable: true,
-      filter: true,
-    },
+    { field: "name", headerName: "Name", width: 180, sortable: true, filter: true },
+    { field: "category", headerName: "Category", width: 140, cellRenderer: CategoryBadgeRenderer, sortable: true, filter: true },
+    { field: "subcategory", headerName: "Subcategory", width: 140, sortable: true, filter: true },
+    { field: "wholesalePrice", headerName: "Wholesale Price", width: 140, cellRenderer: CurrencyRenderer, sortable: true, filter: true },
+    { field: "retailPrice", headerName: "Retail Price", width: 140, cellRenderer: CurrencyRenderer, sortable: true, filter: true },
+    { field: "colour", headerName: "Colour", width: 120, sortable: true, filter: true },
+    { field: "season", headerName: "Season", width: 120, sortable: true, filter: true },
+    { field: "supplier", headerName: "Supplier", width: 140, sortable: true, filter: true },
   ];
+
+  /* ------------------------------------------------------------------ */
+  /*  Render                                                             */
+  /* ------------------------------------------------------------------ */
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-xl sm:text-3xl font-serif font-bold text-gray-900">Libraries</h1>
-          <p className="text-gray-600 mt-1">Manage your product library</p>
+          <h1 className="text-xl sm:text-3xl font-serif font-bold text-gray-900">
+            Libraries
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Manage your product library and bundles
+          </p>
         </div>
         <Can permission="products:create">
           <div className="flex gap-3">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={() => setShowImportModal(true)}
-            >
-              <Upload size={20} className="mr-2" />
-              Import CSV
-            </Button>
-            <Button variant="primary" type="button" onClick={() => setShowCreateModal(true)}>
-              <Plus size={20} className="mr-2" />
-              Add Product
-            </Button>
+            {activeTab === "products" && (
+              <>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setShowImportModal(true)}
+                >
+                  <Upload size={16} />
+                  Import CSV
+                </Button>
+                <Button
+                  variant="primary"
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <Plus size={16} />
+                  Add Product
+                </Button>
+              </>
+            )}
+            {activeTab === "bundles" && (
+              <Button
+                variant="primary"
+                type="button"
+                onClick={() => openBundleModal()}
+              >
+                <Plus size={16} />
+                Create Bundle
+              </Button>
+            )}
           </div>
         </Can>
       </div>
@@ -372,46 +561,475 @@ export default function LibrariesPage() {
         </Card>
       )}
 
-      {/* Category Tabs */}
-      <Card className="mb-6">
-        <CardBody>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+      {/* Tab switcher */}
+      <div className="flex gap-1 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab("products")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+            activeTab === "products"
+              ? "border-dark-green text-dark-green"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          Products
+          <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+            {products.length}
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab("bundles")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px flex items-center gap-1.5 ${
+            activeTab === "bundles"
+              ? "border-dark-green text-dark-green"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          <Package size={14} />
+          Bundles
+          <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+            {bundlesData.length}
+          </span>
+        </button>
+      </div>
+
+      {/* ============================================================ */}
+      {/*  PRODUCTS TAB                                                 */}
+      {/* ============================================================ */}
+      {activeTab === "products" && (
+        <>
+          {/* Category Tabs */}
+          <Card className="mb-6">
+            <CardBody>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() =>
+                      setSelectedCategory(category === "All" ? null : category)
+                    }
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      selectedCategory === category ||
+                      (selectedCategory === null && category === "All")
+                        ? "bg-[#1B4332] text-white"
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Products Table */}
+          <Card>
+            <CardBody className="p-0">
+              <DataGrid
+                rowData={filteredProducts}
+                columnDefs={columnDefs}
+                loading={loading}
+                emptyMessage="No products found. Add your first product to get started."
+                pageSize={20}
+              />
+            </CardBody>
+          </Card>
+        </>
+      )}
+
+      {/* ============================================================ */}
+      {/*  BUNDLES TAB                                                  */}
+      {/* ============================================================ */}
+      {activeTab === "bundles" && (
+        <div className="space-y-4">
+          {bundlesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-sage-200 border-t-dark-green"></div>
+            </div>
+          ) : bundlesData.length === 0 ? (
+            <Card>
+              <CardBody className="text-center py-12">
+                <Package size={40} className="mx-auto text-gray-300 mb-3" />
+                <p className="text-gray-500 mb-4">
+                  No bundles yet. Bundles are pre-built arrangements that
+                  explode into individual line items when added to an order.
+                </p>
+                <Can permission="products:create">
+                  <Button
+                    variant="primary"
+                    onClick={() => openBundleModal()}
+                  >
+                    <Plus size={16} />
+                    Create your first bundle
+                  </Button>
+                </Can>
+              </CardBody>
+            </Card>
+          ) : (
+            bundlesData.map((bundle) => {
+              const isExpanded = expandedBundle === bundle.id;
+              return (
+                <Card key={bundle.id}>
+                  <CardBody className="p-0">
+                    {/* Bundle header row */}
+                    <div
+                      className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() =>
+                        setExpandedBundle(isExpanded ? null : bundle.id)
+                      }
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-sage-100 flex items-center justify-center">
+                          <Package size={16} className="text-sage-700" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900">
+                            {bundle.name}
+                          </h3>
+                          {bundle.description && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {bundle.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">
+                          {bundle.items.length} item
+                          {bundle.items.length !== 1 ? "s" : ""}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp size={16} className="text-gray-400" />
+                        ) : (
+                          <ChevronDown size={16} className="text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expanded items */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-100 px-5 py-4">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-[11px] uppercase tracking-wider text-gray-400">
+                              <th className="text-left pb-2 font-semibold">
+                                Item
+                              </th>
+                              <th className="text-left pb-2 font-semibold">
+                                Category
+                              </th>
+                              <th className="text-right pb-2 font-semibold">
+                                Qty
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {bundle.items.map((bi) => (
+                              <tr key={bi.id}>
+                                <td className="py-2 text-gray-800">
+                                  {bi.description}
+                                </td>
+                                <td className="py-2 text-gray-500 capitalize">
+                                  {bi.category || "-"}
+                                </td>
+                                <td className="py-2 text-gray-800 text-right tabular-nums">
+                                  {bi.quantity}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        <Can permission="products:update">
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openBundleModal(bundle);
+                              }}
+                            >
+                              Edit bundle
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteBundle(bundle.id);
+                              }}
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </Button>
+                          </div>
+                        </Can>
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/*  CREATE / EDIT BUNDLE MODAL                                   */}
+      {/* ============================================================ */}
+      {showBundleModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeBundleModal();
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-serif font-bold text-gray-900">
+                {editingBundle ? "Edit Bundle" : "Create Bundle"}
+              </h2>
               <button
-                key={category}
-                onClick={() => setSelectedCategory(category === "All" ? null : category)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colours ${
-                  (selectedCategory === category || (selectedCategory === null && category === "All"))
-                    ? "bg-[#1B4332] text-white"
-                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                }`}
+                onClick={closeBundleModal}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
               >
-                {category}
+                <X size={20} />
               </button>
-            ))}
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Name & description */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bundle name *
+                  </label>
+                  <input
+                    type="text"
+                    value={bundleForm.name}
+                    onChange={(e) =>
+                      setBundleForm((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Bridal Bouquet"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={bundleForm.description}
+                    onChange={(e) =>
+                      setBundleForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="A short description of this arrangement"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Items builder */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Items ({bundleForm.items.length})
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addBundleItem}
+                  >
+                    <Plus size={14} />
+                    Add item
+                  </Button>
+                </div>
+
+                {bundleForm.items.length === 0 && (
+                  <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                    <Package
+                      size={28}
+                      className="mx-auto text-gray-300 mb-2"
+                    />
+                    <p className="text-sm text-gray-400">
+                      Add products to this bundle
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {bundleForm.items.map((item, index) => (
+                    <div
+                      key={item.key}
+                      className="border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="grid grid-cols-12 gap-2 items-start">
+                        {/* Product selector */}
+                        <div className="col-span-5">
+                          <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                            Product
+                          </label>
+                          <select
+                            value={item.productId}
+                            onChange={(e) =>
+                              updateBundleItem(
+                                index,
+                                "productId",
+                                e.target.value
+                              )
+                            }
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                          >
+                            <option value="">
+                              Select product (or type below)
+                            </option>
+                            {Object.entries(productsByCategory).map(
+                              ([cat, prods]) => (
+                                <optgroup
+                                  key={cat}
+                                  label={
+                                    BUNDLE_CATEGORY_OPTIONS.find(
+                                      (c) => c.value === cat
+                                    )?.label || cat
+                                  }
+                                >
+                                  {prods.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name}
+                                      {p.colour ? ` - ${p.colour}` : ""}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )
+                            )}
+                          </select>
+                        </div>
+
+                        {/* Description */}
+                        <div className="col-span-3">
+                          <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                            Description
+                          </label>
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) =>
+                              updateBundleItem(
+                                index,
+                                "description",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Item name"
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                          />
+                        </div>
+
+                        {/* Category */}
+                        <div className="col-span-2">
+                          <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                            Category
+                          </label>
+                          <select
+                            value={item.category}
+                            onChange={(e) =>
+                              updateBundleItem(
+                                index,
+                                "category",
+                                e.target.value
+                              )
+                            }
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                          >
+                            <option value="">-</option>
+                            {BUNDLE_CATEGORY_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="col-span-1">
+                          <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">
+                            Qty
+                          </label>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateBundleItem(
+                                index,
+                                "quantity",
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            min="1"
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                          />
+                        </div>
+
+                        {/* Delete */}
+                        <div className="col-span-1 flex items-end justify-center pb-0.5">
+                          <button
+                            type="button"
+                            onClick={() => removeBundleItem(index)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors mt-5"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end p-6 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={closeBundleModal}
+                disabled={bundleSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSaveBundle}
+                disabled={bundleSubmitting}
+              >
+                {bundleSubmitting
+                  ? "Saving..."
+                  : editingBundle
+                  ? "Update Bundle"
+                  : "Create Bundle"}
+              </Button>
+            </div>
           </div>
-        </CardBody>
-      </Card>
+        </div>
+      )}
 
-      {/* Products Table */}
-      <Card>
-        <CardBody className="p-0">
-          <DataGrid
-            rowData={filteredProducts}
-            columnDefs={columnDefs}
-            loading={loading}
-            emptyMessage="No products found. Add your first product to get started."
-            pageSize={20}
-          />
-        </CardBody>
-      </Card>
-
-      {/* Create Product Modal */}
+      {/* ============================================================ */}
+      {/*  CREATE PRODUCT MODAL                                         */}
+      {/* ============================================================ */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <Card className="w-full max-w-2xl mx-4">
             <CardHeader className="flex justify-between items-center border-b pb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Create Product</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Create Product
+              </h2>
               <button
                 onClick={handleCloseModal}
                 className="text-gray-500 hover:text-gray-700"
@@ -428,7 +1046,6 @@ export default function LibrariesPage() {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Name Field */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Product Name
@@ -443,11 +1060,12 @@ export default function LibrariesPage() {
                     className={formErrors.name ? "border-red-500" : ""}
                   />
                   {formErrors.name && (
-                    <p className="text-red-600 text-sm mt-1">{formErrors.name}</p>
+                    <p className="text-red-600 text-sm mt-1">
+                      {formErrors.name}
+                    </p>
                   )}
                 </div>
 
-                {/* Category Field */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Category
@@ -469,11 +1087,12 @@ export default function LibrariesPage() {
                     ))}
                   </select>
                   {formErrors.category && (
-                    <p className="text-red-600 text-sm mt-1">{formErrors.category}</p>
+                    <p className="text-red-600 text-sm mt-1">
+                      {formErrors.category}
+                    </p>
                   )}
                 </div>
 
-                {/* Subcategory Field */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Subcategory
@@ -487,7 +1106,6 @@ export default function LibrariesPage() {
                   />
                 </div>
 
-                {/* Wholesale Price Field */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Wholesale Price
@@ -502,7 +1120,6 @@ export default function LibrariesPage() {
                   />
                 </div>
 
-                {/* Retail Price Field */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Retail Price
@@ -517,7 +1134,6 @@ export default function LibrariesPage() {
                   />
                 </div>
 
-                {/* Colour Field */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Colour
@@ -531,7 +1147,6 @@ export default function LibrariesPage() {
                   />
                 </div>
 
-                {/* Season Field */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Season
@@ -551,7 +1166,6 @@ export default function LibrariesPage() {
                   </select>
                 </div>
 
-                {/* Supplier Field */}
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Supplier
@@ -569,7 +1183,7 @@ export default function LibrariesPage() {
 
             <CardFooter className="flex justify-end gap-3 border-t pt-4">
               <Button
-                variant="secondary"
+                variant="outline"
                 onClick={handleCloseModal}
                 disabled={submitting}
               >
@@ -587,7 +1201,9 @@ export default function LibrariesPage() {
         </div>
       )}
 
-      {/* CSV Import Modal (#22) */}
+      {/* ============================================================ */}
+      {/*  CSV IMPORT MODAL                                             */}
+      {/* ============================================================ */}
       {showImportModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -660,8 +1276,8 @@ export default function LibrariesPage() {
               {importPreview && (
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
                   <p className="text-sm font-medium text-gray-900">
-                    Preview: {importPreview.valid} of {importPreview.total}{" "}
-                    rows look good
+                    Preview: {importPreview.valid} of {importPreview.total} rows
+                    look good
                     {importPreview.failed > 0 && (
                       <span className="text-red-700">
                         {" "}
@@ -691,7 +1307,7 @@ export default function LibrariesPage() {
 
             <CardFooter className="flex justify-end gap-3 border-t pt-4">
               <Button
-                variant="secondary"
+                variant="outline"
                 onClick={closeImportModal}
                 disabled={importLoading}
               >
