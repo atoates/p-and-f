@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Upload } from "lucide-react";
 import { ColDef } from "ag-grid-community";
 import { DataGrid } from "@/components/ui/data-grid";
 import { CurrencyRenderer, CategoryBadgeRenderer } from "@/components/ui/grid-renderers";
 import { Can } from "@/components/auth/can";
+import toast from "react-hot-toast";
 
 interface Product {
   id: string;
@@ -53,6 +54,20 @@ export default function LibrariesPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // --- CSV import state (#22) ---
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importText, setImportText] = useState<string>("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importPreview, setImportPreview] = useState<null | {
+    total: number;
+    valid: number;
+    failed: number;
+    errors: { row: number; field?: string; message: string }[];
+  }>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -182,6 +197,86 @@ export default function LibrariesPage() {
     setSubmitError(null);
   };
 
+  // --- CSV import (#22) ---
+  // Two-step flow: pick file -> dry-run preview -> commit. The
+  // preview protects the user from dropping a malformed price list
+  // and silently corrupting their library. Invalid rows are
+  // reported and skipped but never block the valid ones.
+  const handleImportFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0] ?? null;
+    setImportFile(file);
+    setImportPreview(null);
+    setImportError(null);
+    if (!file) {
+      setImportText("");
+      return;
+    }
+    try {
+      const text = await file.text();
+      setImportText(text);
+    } catch (err) {
+      setImportError(
+        err instanceof Error ? err.message : "Failed to read file"
+      );
+      setImportText("");
+    }
+  };
+
+  const runImport = async (dryRun: boolean) => {
+    if (!importText) {
+      setImportError("Pick a CSV file first");
+      return;
+    }
+    setImportLoading(true);
+    setImportError(null);
+    try {
+      const res = await fetch("/api/products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv: importText, dryRun }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Import failed");
+      }
+      setImportPreview({
+        total: data.total,
+        valid: data.valid,
+        failed: data.failed,
+        errors: data.errors ?? [],
+      });
+      if (!dryRun) {
+        toast.success(
+          `Imported ${data.inserted} product${data.inserted === 1 ? "" : "s"}` +
+            (data.failed > 0 ? ` (${data.failed} skipped)` : "")
+        );
+        // Refresh the grid so the new rows show up immediately.
+        const refreshed = await fetch("/api/products");
+        if (refreshed.ok) {
+          setProducts(await refreshed.json());
+        }
+        closeImportModal();
+      }
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportText("");
+    setImportPreview(null);
+    setImportError(null);
+    if (importInputRef.current) {
+      importInputRef.current.value = "";
+    }
+  };
+
   const columnDefs: ColDef[] = [
     {
       field: "name",
@@ -252,10 +347,20 @@ export default function LibrariesPage() {
           <p className="text-gray-600 mt-1">Manage your product library</p>
         </div>
         <Can permission="products:create">
-          <Button variant="primary" type="button" onClick={() => setShowCreateModal(true)}>
-            <Plus size={20} className="mr-2" />
-            Add Product
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setShowImportModal(true)}
+            >
+              <Upload size={20} className="mr-2" />
+              Import CSV
+            </Button>
+            <Button variant="primary" type="button" onClick={() => setShowCreateModal(true)}>
+              <Plus size={20} className="mr-2" />
+              Add Product
+            </Button>
+          </div>
         </Can>
       </div>
 
@@ -476,6 +581,139 @@ export default function LibrariesPage() {
                 disabled={submitting}
               >
                 {submitting ? "Creating..." : "Create Product"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {/* CSV Import Modal (#22) */}
+      {showImportModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="import-modal-title"
+        >
+          <Card className="w-full max-w-2xl mx-4">
+            <CardHeader className="flex justify-between items-center border-b pb-4">
+              <h2
+                id="import-modal-title"
+                className="text-xl font-semibold text-gray-900"
+              >
+                Import Products from CSV
+              </h2>
+              <button
+                onClick={closeImportModal}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Close import modal"
+              >
+                <X size={20} />
+              </button>
+            </CardHeader>
+
+            <CardBody className="py-6 space-y-4">
+              <div className="text-sm text-gray-700 space-y-2">
+                <p>
+                  Upload a CSV with the columns below. Only{" "}
+                  <code className="bg-gray-100 px-1 rounded">name</code> and{" "}
+                  <code className="bg-gray-100 px-1 rounded">category</code>{" "}
+                  are required.
+                </p>
+                <p className="text-xs text-gray-600">
+                  Header row:{" "}
+                  <code className="bg-gray-100 px-1 rounded text-[11px]">
+                    name, category, subcategory, wholesalePrice, retailPrice,
+                    unit, stemCount, colour, season, supplier, notes, isActive
+                  </code>
+                </p>
+                <p className="text-xs text-gray-600">
+                  Category accepts Flowers, Foliage, Sundries, Containers,
+                  Ribbons, Accessories.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  CSV file
+                </label>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleImportFileChange}
+                  className="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-[#1B4332] file:text-white file:cursor-pointer"
+                />
+                {importFile && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {importFile.name} ({Math.round(importFile.size / 1024)} KB)
+                  </p>
+                )}
+              </div>
+
+              {importError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 text-sm">{importError}</p>
+                </div>
+              )}
+
+              {importPreview && (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                  <p className="text-sm font-medium text-gray-900">
+                    Preview: {importPreview.valid} of {importPreview.total}{" "}
+                    rows look good
+                    {importPreview.failed > 0 && (
+                      <span className="text-red-700">
+                        {" "}
+                        ({importPreview.failed} will be skipped)
+                      </span>
+                    )}
+                    .
+                  </p>
+                  {importPreview.errors.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto text-xs text-red-800 space-y-1">
+                      {importPreview.errors.slice(0, 20).map((e, idx) => (
+                        <div key={idx}>
+                          Row {e.row}
+                          {e.field ? ` (${e.field})` : ""}: {e.message}
+                        </div>
+                      ))}
+                      {importPreview.errors.length > 20 && (
+                        <div className="italic text-gray-600">
+                          ... and {importPreview.errors.length - 20} more
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardBody>
+
+            <CardFooter className="flex justify-end gap-3 border-t pt-4">
+              <Button
+                variant="secondary"
+                onClick={closeImportModal}
+                disabled={importLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => runImport(true)}
+                disabled={importLoading || !importText}
+              >
+                {importLoading ? "Checking..." : "Preview"}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => runImport(false)}
+                disabled={
+                  importLoading ||
+                  !importText ||
+                  (importPreview !== null && importPreview.valid === 0)
+                }
+              >
+                {importLoading ? "Importing..." : "Import"}
               </Button>
             </CardFooter>
           </Card>
