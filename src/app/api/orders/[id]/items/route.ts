@@ -99,6 +99,8 @@ export async function POST(
           baseCost: priced.baseCost,
           unitPrice: priced.unitPrice,
           totalPrice: priced.totalPrice,
+          createdBy: ctx.userId,
+          updatedBy: ctx.userId,
         })
         .returning();
       await recomputeOrderTotal(tx, id, ctx.companyId);

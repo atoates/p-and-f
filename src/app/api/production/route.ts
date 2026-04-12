@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
             : JSON.stringify(data.tasks),
         notes: data.notes,
         status: data.status,
+        createdBy: ctx.userId,
+        updatedBy: ctx.userId,
       })
       .returning();
 

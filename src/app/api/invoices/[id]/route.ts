@@ -55,6 +55,7 @@ export async function PATCH(
       paymentMethod: data.paymentMethod ?? undefined,
       paidAt: data.paidAt ?? undefined,
       dueDate: data.dueDate ?? undefined,
+      updatedBy: ctx.userId,
       updatedAt: new Date(),
     };
 

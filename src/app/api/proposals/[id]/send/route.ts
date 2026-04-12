@@ -158,6 +158,7 @@ export async function POST(
         subject,
         bodyHtml,
         publicToken,
+        updatedBy: ctx.userId,
         updatedAt: now,
       })
       .where(

@@ -149,6 +149,11 @@ export const enquiries = pgTable(
     venueB: varchar("venue_b", { length: 255 }),
     progress: enquiryProgressEnum("progress").default("New"),
     notes: text("notes"),
+    // Audit columns: user id of whoever originally created the row and
+    // whoever last touched it. Both nullable because historic rows
+    // predate this column and we backfill lazily on the next update.
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
     archivedAt: timestamp("archived_at"),
@@ -170,6 +175,8 @@ export const orders = pgTable(
     // has changed since. Nullable because older rows were created before
     // the pricing engine was wired in.
     pricingSnapshot: text("pricing_snapshot"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -193,6 +200,8 @@ export const orderItems = pgTable(
     baseCost: decimal("base_cost", { precision: 10, scale: 2 }),
     unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
     totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
   }
 );
@@ -220,6 +229,8 @@ export const proposals = pgTable(
     acceptedAt: timestamp("accepted_at"),
     rejectedAt: timestamp("rejected_at"),
     content: text("content"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -253,6 +264,8 @@ export const invoices = pgTable(
     paymentMethod: varchar("payment_method", { length: 50 }),
     dueDate: timestamp("due_date"),
     paidAt: timestamp("paid_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -269,6 +282,8 @@ export const wholesaleOrders = pgTable(
     status: wholesaleStatusEnum("status").default("pending"),
     orderDate: timestamp("order_date").defaultNow(),
     receivedDate: timestamp("received_date"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -294,6 +309,8 @@ export const productionSchedules = pgTable(
     tasks: text("tasks"),
     notes: text("notes"),
     status: productionStatusEnum("status").default("not_started"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -323,6 +340,8 @@ export const deliverySchedules = pgTable(
     items: text("items"),
     notes: text("notes"),
     status: deliveryStatusEnum("status").default("pending"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }
@@ -341,6 +360,8 @@ export const venues = pgTable("venues", {
   contactName: varchar("contact_name", { length: 200 }),
   contactPhone: varchar("contact_phone", { length: 50 }),
   notes: text("notes"),
+  createdBy: text("created_by"),
+  updatedBy: text("updated_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -438,6 +459,8 @@ export const products = pgTable(
     supplier: varchar("supplier", { length: 255 }),
     notes: text("notes"),
     isActive: boolean("is_active").notNull().default(true),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   }

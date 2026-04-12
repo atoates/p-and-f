@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
         status: data.status,
         orderDate: data.orderDate ?? new Date(),
         receivedDate: data.receivedDate,
+        createdBy: ctx.userId,
+        updatedBy: ctx.userId,
       })
       .returning();
 

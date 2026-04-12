@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
         supplier: data.supplier,
         notes: data.notes,
         isActive: data.isActive ?? true,
+        createdBy: ctx.userId,
+        updatedBy: ctx.userId,
       })
       .returning();
 

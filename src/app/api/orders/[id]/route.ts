@@ -89,6 +89,7 @@ export async function PUT(
           status: data.status,
           version: data.version ?? 1,
           totalPrice: data.totalPrice,
+          updatedBy: ctx.userId,
           updatedAt: new Date(),
         })
         .where(
@@ -148,6 +149,7 @@ export async function PUT(
                 baseCost: priced.baseCost,
                 unitPrice: priced.unitPrice,
                 totalPrice: priced.totalPrice,
+                updatedBy: ctx.userId,
               })
               .where(
                 and(
@@ -165,6 +167,8 @@ export async function PUT(
               baseCost: priced.baseCost,
               unitPrice: priced.unitPrice,
               totalPrice: priced.totalPrice,
+              createdBy: ctx.userId,
+              updatedBy: ctx.userId,
             });
           }
         }

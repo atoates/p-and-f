@@ -29,7 +29,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Venue not found" }, { status: 404 });
     }
 
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date(),
+      updatedBy: ctx.userId,
+    };
     if (data.name !== undefined) updates.name = data.name;
     if (data.address !== undefined) updates.address = data.address;
     if (data.contactName !== undefined) updates.contactName = data.contactName;

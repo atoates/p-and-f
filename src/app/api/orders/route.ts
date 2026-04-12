@@ -82,6 +82,8 @@ export async function POST(request: NextRequest) {
           status: data.status,
           totalPrice: data.totalPrice ?? "0",
           version: 1,
+          createdBy: ctx.userId,
+          updatedBy: ctx.userId,
         })
         .returning();
 
@@ -106,6 +108,8 @@ export async function POST(request: NextRequest) {
             baseCost: priced.baseCost,
             unitPrice: priced.unitPrice,
             totalPrice: priced.totalPrice,
+            createdBy: ctx.userId,
+            updatedBy: ctx.userId,
           });
         }
         // Recompute total from the freshly-inserted items so it
@@ -125,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (data.enquiryId) {
       await db
         .update(enquiries)
-        .set({ progress: "Order", updatedAt: new Date() })
+        .set({ progress: "Order", updatedBy: ctx.userId, updatedAt: new Date() })
         .where(
           and(
             eq(enquiries.id, data.enquiryId),

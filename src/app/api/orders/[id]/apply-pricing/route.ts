@@ -112,6 +112,7 @@ export async function POST(
             baseCost: priced.baseCost.toFixed(2),
             unitPrice: priced.unitPrice.toFixed(2),
             totalPrice: priced.totalPrice.toFixed(2),
+            updatedBy: ctx.userId,
           })
           .where(
             and(eq(orderItems.id, item.id), eq(orderItems.orderId, params.id))
@@ -131,6 +132,7 @@ export async function POST(
             total: result.total,
             appliedAt: new Date().toISOString(),
           }),
+          updatedBy: ctx.userId,
           updatedAt: new Date(),
         })
         .where(

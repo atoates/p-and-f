@@ -161,6 +161,8 @@ export async function POST(request: NextRequest) {
         totalAmount,
         dueDate: data.dueDate,
         paidAt: data.paidAt,
+        createdBy: ctx.userId,
+        updatedBy: ctx.userId,
       })
       .returning();
 

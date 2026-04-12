@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
         venueB: data.venueB,
         progress: data.progress,
         notes: data.notes,
+        createdBy: ctx.userId,
+        updatedBy: ctx.userId,
       })
       .returning();
 

@@ -44,7 +44,10 @@ export async function PATCH(
       );
     }
 
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date(),
+      updatedBy: ctx.userId,
+    };
     if (data.productionDate !== undefined) updates.productionDate = data.productionDate;
     if (data.notes !== undefined) updates.notes = data.notes;
     if (data.status !== undefined) updates.status = data.status;

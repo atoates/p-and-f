@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
         contactName: data.contactName,
         contactPhone: data.contactPhone,
         notes: data.notes,
+        createdBy: ctx.userId,
+        updatedBy: ctx.userId,
       })
       .returning();
     return NextResponse.json(created, { status: 201 });

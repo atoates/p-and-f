@@ -63,6 +63,7 @@ export async function PUT(
         venueB: data.venueB,
         progress: data.progress,
         notes: data.notes,
+        updatedBy: ctx.userId,
         updatedAt: new Date(),
       })
       .where(
