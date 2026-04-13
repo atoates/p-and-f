@@ -190,6 +190,90 @@ export function FloralRose({ className = "" }: { className?: string }) {
   );
 }
 
+export function FloralWreath({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 200 200"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Wreath ring of leaves */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * 30 * Math.PI) / 180;
+        const cx = 100 + 65 * Math.cos(angle);
+        const cy = 100 + 65 * Math.sin(angle);
+        const rot = i * 30 + 90;
+        return (
+          <ellipse
+            key={i}
+            cx={cx}
+            cy={cy}
+            rx="18"
+            ry="8"
+            fill="currentColor"
+            opacity={0.2 + (i % 3) * 0.05}
+            transform={`rotate(${rot} ${cx} ${cy})`}
+          />
+        );
+      })}
+      {/* Small berries */}
+      {Array.from({ length: 6 }).map((_, i) => {
+        const angle = (i * 60 * Math.PI) / 180;
+        const cx = 100 + 72 * Math.cos(angle);
+        const cy = 100 + 72 * Math.sin(angle);
+        return (
+          <circle
+            key={`b-${i}`}
+            cx={cx}
+            cy={cy}
+            r="4"
+            fill="currentColor"
+            opacity="0.35"
+          />
+        );
+      })}
+      {/* Centre bloom */}
+      <circle cx="100" cy="100" r="20" fill="currentColor" opacity="0.08" />
+      <circle cx="100" cy="100" r="8" fill="currentColor" opacity="0.3" />
+    </svg>
+  );
+}
+
+export function FloralCorner({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 200 200"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Curved stem */}
+      <path
+        d="M10 190C10 190 15 120 50 70C85 20 160 10 190 10"
+        stroke="currentColor"
+        strokeWidth="2"
+        opacity="0.3"
+        fill="none"
+      />
+      {/* Leaves along the curve */}
+      <path d="M30 155C30 155 10 140 15 125C20 110 40 120 40 140Z" fill="currentColor" opacity="0.25" />
+      <path d="M50 110C50 110 25 100 28 82C31 64 55 72 55 95Z" fill="currentColor" opacity="0.22" />
+      <path d="M80 70C80 70 55 55 60 38C65 21 88 32 85 58Z" fill="currentColor" opacity="0.2" />
+      <path d="M120 40C120 40 100 25 108 12C116 -1 135 12 128 35Z" fill="currentColor" opacity="0.18" />
+      {/* Small buds */}
+      <circle cx="15" cy="123" r="5" fill="currentColor" opacity="0.35" />
+      <circle cx="28" cy="80" r="4" fill="currentColor" opacity="0.3" />
+      <circle cx="60" cy="36" r="5" fill="currentColor" opacity="0.35" />
+      <circle cx="108" cy="10" r="4" fill="currentColor" opacity="0.3" />
+      {/* Large bloom bottom-left */}
+      <path d="M20 180C20 180 0 168 2 152C4 136 22 142 22 162Z" fill="currentColor" opacity="0.25" />
+      <path d="M20 180C20 180 8 196 -2 188C-12 180 2 168 18 176Z" fill="currentColor" opacity="0.25" />
+      <circle cx="18" cy="178" r="6" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
+
 export function FloralDivider({ className = "" }: { className?: string }) {
   return (
     <svg

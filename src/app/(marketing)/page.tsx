@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   Flower,
@@ -15,9 +16,11 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { FloralBranch, FloralRose, FloralLeaf } from "@/components/marketing/floral-elements";
+import { FloralBranch, FloralRose, FloralLeaf, FloralCorner } from "@/components/marketing/floral-elements";
 import { StatsTicker, FloristTicker } from "@/components/marketing/tickers";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
+import { DashboardPreview } from "@/components/marketing/dashboard-preview";
+import { PhotoShowcase } from "@/components/marketing/photo-showcase";
 
 export default function Home() {
   return (
@@ -39,7 +42,7 @@ export default function Home() {
           <FloristTicker />
         </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20 pb-40">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20 pb-52">
           {/* Badge */}
           <div className="mb-10 inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/15 bg-white/8 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-[#C9A96E] animate-pulse" />
@@ -94,6 +97,11 @@ export default function Home() {
           <p className="text-sm text-white/70 font-light tracking-wide">
             No credit card &middot; 30-day free trial &middot; Cancel anytime
           </p>
+
+          {/* Dashboard preview */}
+          <div className="mt-16 sm:mt-20 px-2">
+            <DashboardPreview />
+          </div>
         </div>
       </section>
 
@@ -135,20 +143,30 @@ export default function Home() {
 
           {/* Bento grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Enquiries — large */}
-            <div className="md:col-span-2 rounded-3xl bg-[#1B4332] p-8 sm:p-10 flex flex-col justify-between min-h-[280px] group hover:scale-[1.01] transition-transform duration-300">
-              <div>
+            {/* Enquiries — large, with photo accent */}
+            <div className="md:col-span-2 rounded-3xl bg-[#1B4332] p-8 sm:p-10 flex flex-col justify-between min-h-[320px] group hover:scale-[1.01] transition-transform duration-300 relative overflow-hidden">
+              {/* Photo accent */}
+              <div className="absolute -right-4 -bottom-4 w-48 h-48 rounded-2xl overflow-hidden opacity-20 group-hover:opacity-30 transition-opacity duration-500 rotate-6">
+                <Image
+                  src="https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=300&q=70"
+                  alt=""
+                  fill
+                  sizes="200px"
+                  className="object-cover"
+                />
+              </div>
+              <div className="relative z-10">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
                   <FileText className="text-[#E8CFA0]" size={24} />
                 </div>
                 <h3 className="text-2xl font-serif font-bold text-white mb-3">
                   Enquiry Management
                 </h3>
-                <p className="text-white/80 leading-relaxed">
+                <p className="text-white/80 leading-relaxed max-w-sm">
                   Every lead tracked from first contact to confirmed booking. Never lose an enquiry again.
                 </p>
               </div>
-              <div className="flex gap-2 mt-6 flex-wrap">
+              <div className="relative z-10 flex gap-2 mt-6 flex-wrap">
                 {["New", "Live", "TBD", "Placed", "Done"].map((s) => (
                   <span key={s} className="px-3 py-1 rounded-full text-xs font-medium bg-white/15 text-white/90">
                     {s}
@@ -157,20 +175,30 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Orders */}
-            <div className="md:col-span-2 rounded-3xl bg-[#F3EDE3] p-8 sm:p-10 flex flex-col justify-between min-h-[280px] group hover:scale-[1.01] transition-transform duration-300">
-              <div>
+            {/* Orders — with photo accent */}
+            <div className="md:col-span-2 rounded-3xl bg-[#F3EDE3] p-8 sm:p-10 flex flex-col justify-between min-h-[320px] group hover:scale-[1.01] transition-transform duration-300 relative overflow-hidden">
+              {/* Photo accent */}
+              <div className="absolute -right-2 -top-2 w-44 h-44 rounded-2xl overflow-hidden opacity-15 group-hover:opacity-25 transition-opacity duration-500 -rotate-6">
+                <Image
+                  src="https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=300&q=70"
+                  alt=""
+                  fill
+                  sizes="200px"
+                  className="object-cover"
+                />
+              </div>
+              <div className="relative z-10">
                 <div className="w-12 h-12 rounded-2xl bg-[#1B4332]/10 flex items-center justify-center mb-6">
                   <ShoppingCart className="text-[#1B4332]" size={24} />
                 </div>
                 <h3 className="text-2xl font-serif font-bold text-[#1B4332] mb-3">
                   Order Builder
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed max-w-sm">
                   Itemise every order with your product library. Automatic pricing, versioning, and totals.
                 </p>
               </div>
-              <div className="mt-6 space-y-2">
+              <div className="relative z-10 mt-6 space-y-2">
                 {["Roses — Red · £3.50", "Foliage — Eucalyptus · £1.80", "Ribbon — Ivory · £0.60"].map((item) => (
                   <div key={item} className="flex items-center justify-between bg-white/60 rounded-xl px-4 py-2 text-xs font-medium text-[#1B4332]">
                     <span>{item.split(" · ")[0]}</span>
@@ -272,9 +300,14 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ─── PHOTO SHOWCASE ─────────────────────────────────────── */}
+      <PhotoShowcase />
+
       {/* ─── WORKFLOW ────────────────────────────────────────────── */}
-      <section className="py-28 px-4 sm:px-6 lg:px-8 bg-[#F7F2EA]">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-28 px-4 sm:px-6 lg:px-8 bg-[#F7F2EA] relative overflow-hidden">
+        <FloralCorner className="absolute top-0 right-0 w-40 h-auto text-[#C9A96E] opacity-20 scale-x-[-1] pointer-events-none" />
+        <FloralCorner className="absolute bottom-0 left-0 w-40 h-auto text-[#2D6A4F] opacity-15 rotate-180 pointer-events-none" />
+        <div className="max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-20">
             <p className="text-sm font-semibold text-[#7A5C2E] uppercase tracking-widest mb-4">
               Workflow
@@ -352,18 +385,21 @@ export default function Home() {
                 name: "Sarah Mitchell",
                 company: "Bloom & Blossom, London",
                 stars: 5,
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&q=80",
               },
               {
                 quote: "The proposal templates look so professional. Clients are genuinely impressed, and I've definitely won more contracts since switching.",
                 name: "Emma Thompson",
                 company: "The Flower Studio, Manchester",
                 stars: 5,
+                avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&q=80",
               },
               {
                 quote: "During wedding season this is an absolute lifesaver. Everything is in one place. I couldn't manage 40+ events without it.",
                 name: "Rachel Davies",
                 company: "Petals & Posies, Edinburgh",
                 stars: 5,
+                avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&q=80",
               },
             ].map((t, idx) => (
               <div
@@ -379,8 +415,14 @@ export default function Home() {
                   &ldquo;{t.quote}&rdquo;
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2D6A4F] to-[#C9A96E] flex items-center justify-center text-white font-bold text-sm">
-                    {t.name.charAt(0)}
+                  <div className="relative w-11 h-11 rounded-full overflow-hidden ring-2 ring-[#C9A96E]/30">
+                    <Image
+                      src={t.avatar}
+                      alt={t.name}
+                      fill
+                      sizes="44px"
+                      className="object-cover"
+                    />
                   </div>
                   <div>
                     <p className="font-semibold text-white text-sm">{t.name}</p>
@@ -391,6 +433,18 @@ export default function Home() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ─── IMAGE BREAK ─────────────────────────────────────────── */}
+      <section className="relative h-48 sm:h-64 overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1533616688419-b7a585564566?w=1600&q=75"
+          alt="Colourful floristry workspace"
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1B4332]/40 via-transparent to-[#1B4332]/40" />
       </section>
 
       {/* ─── PRICING ──────────────────────────────────────────────── */}
