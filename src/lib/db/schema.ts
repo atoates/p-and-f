@@ -217,11 +217,32 @@ export const enquiries = pgTable(
     clientName: varchar("client_name", { length: 255 }).notNull(),
     clientEmail: varchar("client_email", { length: 255 }).notNull(),
     clientPhone: varchar("client_phone", { length: 20 }),
+    // Top-level classification
+    enquiryType: varchar("enquiry_type", { length: 100 }),
+    status: varchar("status", { length: 100 }),
+    progress: enquiryProgressEnum("progress").default("New"),
+    // Event details
     eventType: varchar("event_type", { length: 100 }),
     eventDate: timestamp("event_date"),
+    enquiryDate: timestamp("enquiry_date"),
+    colourScheme: varchar("colour_scheme", { length: 255 }),
+    guestNumbers: integer("guest_numbers"),
+    budget: decimal("budget", { precision: 10, scale: 2 }),
+    // Venue A
     venueA: varchar("venue_a", { length: 255 }),
+    venueATown: varchar("venue_a_town", { length: 255 }),
+    venueAPhone: varchar("venue_a_phone", { length: 30 }),
+    venueAContact: varchar("venue_a_contact", { length: 255 }),
+    // Venue B
     venueB: varchar("venue_b", { length: 255 }),
-    progress: enquiryProgressEnum("progress").default("New"),
+    venueBTown: varchar("venue_b_town", { length: 255 }),
+    venueBPhone: varchar("venue_b_phone", { length: 30 }),
+    venueBContact: varchar("venue_b_contact", { length: 255 }),
+    // Planner details
+    plannerName: varchar("planner_name", { length: 255 }),
+    plannerCompany: varchar("planner_company", { length: 255 }),
+    plannerPhone: varchar("planner_phone", { length: 30 }),
+    plannerEmail: varchar("planner_email", { length: 255 }),
     notes: text("notes"),
     // Audit columns: user id of whoever originally created the row and
     // whoever last touched it. Both nullable because historic rows

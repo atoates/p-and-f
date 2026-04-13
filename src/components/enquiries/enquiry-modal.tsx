@@ -4,7 +4,7 @@ import React, { useId, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Plus, UserCircle } from "lucide-react";
+import { X, Search, Plus, UserCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useModalA11y } from "@/hooks/use-modal-a11y";
 import Link from "next/link";
 
@@ -23,11 +23,27 @@ interface Enquiry {
   clientName: string;
   clientEmail: string;
   clientPhone?: string;
+  enquiryType?: string;
+  status?: string;
+  progress: string;
   eventType?: string;
   eventDate?: string;
+  enquiryDate?: string;
+  colourScheme?: string;
+  guestNumbers?: number | null;
+  budget?: string | null;
   venueA?: string;
+  venueATown?: string;
+  venueAPhone?: string;
+  venueAContact?: string;
   venueB?: string;
-  progress: string;
+  venueBTown?: string;
+  venueBPhone?: string;
+  venueBContact?: string;
+  plannerName?: string;
+  plannerCompany?: string;
+  plannerPhone?: string;
+  plannerEmail?: string;
   notes?: string;
   createdAt: string;
 }
@@ -51,7 +67,93 @@ const EVENT_TYPES = [
   "Other",
 ];
 
+const ENQUIRY_TYPES = [
+  "Telephone",
+  "Email",
+  "Website",
+  "Social Media",
+  "Referral",
+  "Walk-in",
+  "Other",
+];
+
+const ENQUIRY_STATUSES = [
+  "Pending",
+  "Responded",
+  "Meeting Booked",
+  "Quote Sent",
+  "Awaiting Response",
+  "Won",
+  "Lost",
+];
+
 const PROGRESS_OPTIONS = ["New", "TBD", "Live", "Done", "Placed", "Order"];
+
+const emptyForm: Partial<Enquiry> = {
+  contactId: null,
+  clientName: "",
+  clientEmail: "",
+  clientPhone: "",
+  enquiryType: "",
+  status: "",
+  progress: "New",
+  eventType: "",
+  eventDate: "",
+  enquiryDate: "",
+  colourScheme: "",
+  guestNumbers: null,
+  budget: "",
+  venueA: "",
+  venueATown: "",
+  venueAPhone: "",
+  venueAContact: "",
+  venueB: "",
+  venueBTown: "",
+  venueBPhone: "",
+  venueBContact: "",
+  plannerName: "",
+  plannerCompany: "",
+  plannerPhone: "",
+  plannerEmail: "",
+  notes: "",
+};
+
+function CollapsibleSection({
+  title,
+  defaultOpen,
+  hasContent,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  hasContent?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen || false);
+
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`w-full flex items-center justify-between px-4 py-3 text-sm font-semibold transition-colors ${
+          open
+            ? "bg-sage-50 text-gray-900"
+            : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+        }`}
+      >
+        <span className="flex items-center gap-2">
+          {title}
+          {!open && hasContent && (
+            <span className="w-2 h-2 rounded-full bg-primary-green" />
+          )}
+        </span>
+        {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+      </button>
+      {open && <div className="p-4 space-y-4">{children}</div>}
+    </div>
+  );
+}
 
 export function EnquiryModal({
   isOpen,
@@ -68,18 +170,7 @@ export function EnquiryModal({
   const [selectedContact, setSelectedContact] = useState<ContactOption | null>(
     null
   );
-  const [formData, setFormData] = useState<Partial<Enquiry>>({
-    contactId: null,
-    clientName: "",
-    clientEmail: "",
-    clientPhone: "",
-    eventType: "",
-    eventDate: "",
-    venueA: "",
-    venueB: "",
-    progress: "New",
-    notes: "",
-  });
+  const [formData, setFormData] = useState<Partial<Enquiry>>({ ...emptyForm });
 
   // Fetch contacts for the selector
   useEffect(() => {
@@ -87,12 +178,9 @@ export function EnquiryModal({
     const fetchContacts = async () => {
       try {
         const res = await fetch("/api/contacts?type=customer");
-        if (res.ok) {
-          const data = await res.json();
-          setContacts(data);
-        }
+        if (res.ok) setContacts(await res.json());
       } catch {
-        // Silently fail; manual entry is still available
+        // Manual entry fallback
       }
     };
     fetchContacts();
@@ -105,16 +193,33 @@ export function EnquiryModal({
         clientName: enquiry.clientName || "",
         clientEmail: enquiry.clientEmail || "",
         clientPhone: enquiry.clientPhone || "",
+        enquiryType: enquiry.enquiryType || "",
+        status: enquiry.status || "",
+        progress: enquiry.progress || "New",
         eventType: enquiry.eventType || "",
         eventDate: enquiry.eventDate
           ? new Date(enquiry.eventDate).toISOString().split("T")[0]
           : "",
+        enquiryDate: enquiry.enquiryDate
+          ? new Date(enquiry.enquiryDate).toISOString().split("T")[0]
+          : "",
+        colourScheme: enquiry.colourScheme || "",
+        guestNumbers: enquiry.guestNumbers ?? null,
+        budget: enquiry.budget || "",
         venueA: enquiry.venueA || "",
+        venueATown: enquiry.venueATown || "",
+        venueAPhone: enquiry.venueAPhone || "",
+        venueAContact: enquiry.venueAContact || "",
         venueB: enquiry.venueB || "",
-        progress: enquiry.progress || "New",
+        venueBTown: enquiry.venueBTown || "",
+        venueBPhone: enquiry.venueBPhone || "",
+        venueBContact: enquiry.venueBContact || "",
+        plannerName: enquiry.plannerName || "",
+        plannerCompany: enquiry.plannerCompany || "",
+        plannerPhone: enquiry.plannerPhone || "",
+        plannerEmail: enquiry.plannerEmail || "",
         notes: enquiry.notes || "",
       });
-      // If editing and there's a contactId, find the matching contact
       if (enquiry.contactId) {
         const match = contacts.find((c) => c.id === enquiry.contactId);
         setSelectedContact(match || null);
@@ -122,18 +227,7 @@ export function EnquiryModal({
         setSelectedContact(null);
       }
     } else {
-      setFormData({
-        contactId: null,
-        clientName: "",
-        clientEmail: "",
-        clientPhone: "",
-        eventType: "",
-        eventDate: "",
-        venueA: "",
-        venueB: "",
-        progress: "New",
-        notes: "",
-      });
+      setFormData({ ...emptyForm });
       setSelectedContact(null);
       setContactSearch("");
     }
@@ -208,6 +302,31 @@ export function EnquiryModal({
     }
   };
 
+  const hasVenueContent = !!(
+    formData.venueA ||
+    formData.venueATown ||
+    formData.venueAPhone ||
+    formData.venueAContact ||
+    formData.venueB ||
+    formData.venueBTown ||
+    formData.venueBPhone ||
+    formData.venueBContact
+  );
+
+  const hasPlannerContent = !!(
+    formData.plannerName ||
+    formData.plannerCompany ||
+    formData.plannerPhone ||
+    formData.plannerEmail
+  );
+
+  const hasExtraEventContent = !!(
+    formData.colourScheme ||
+    formData.guestNumbers ||
+    formData.budget ||
+    formData.enquiryDate
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -223,7 +342,7 @@ export function EnquiryModal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto focus:outline-none"
+        className="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto focus:outline-none"
       >
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
           <h2
@@ -241,8 +360,70 @@ export function EnquiryModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-          {/* Contact selector */}
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 sm:p-6 space-y-5"
+        >
+          {/* ── Top classification row ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type of Enquiry
+              </label>
+              <select
+                name="enquiryType"
+                value={formData.enquiryType || ""}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
+              >
+                <option value="">Select type</option>
+                {ENQUIRY_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status || ""}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
+              >
+                <option value="">Select status</option>
+                {ENQUIRY_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Progress
+              </label>
+              <select
+                name="progress"
+                value={formData.progress || "New"}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
+              >
+                {PROGRESS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ── Client selector ── */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
               Client
@@ -341,9 +522,9 @@ export function EnquiryModal({
               </div>
             )}
 
-            {/* Manual fallback fields if no contact selected */}
+            {/* Manual client fields when no contact selected */}
             {!selectedContact && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
                 <Input
                   label="Client Name *"
                   name="clientName"
@@ -352,7 +533,6 @@ export function EnquiryModal({
                   placeholder="e.g. Sarah Smith"
                   required
                 />
-
                 <Input
                   label="Client Email *"
                   name="clientEmail"
@@ -362,7 +542,6 @@ export function EnquiryModal({
                   placeholder="e.g. sarah@example.com"
                   required
                 />
-
                 <Input
                   label="Client Phone"
                   name="clientPhone"
@@ -375,8 +554,8 @@ export function EnquiryModal({
             )}
           </div>
 
-          {/* Event details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* ── Core event details (always visible) ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Event Type
@@ -385,7 +564,7 @@ export function EnquiryModal({
                 name="eventType"
                 value={formData.eventType || ""}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
               >
                 <option value="">Select an event type</option>
                 {EVENT_TYPES.map((type) => (
@@ -404,41 +583,174 @@ export function EnquiryModal({
               onChange={handleChange}
             />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Progress
-              </label>
-              <select
-                name="progress"
-                value={formData.progress || "New"}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors"
-              >
-                {PROGRESS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <Input
-              label="Venue A"
+              label="Venue"
               name="venueA"
               value={formData.venueA || ""}
               onChange={handleChange}
               placeholder="e.g. Town Hall"
             />
-
-            <Input
-              label="Venue B"
-              name="venueB"
-              value={formData.venueB || ""}
-              onChange={handleChange}
-              placeholder="e.g. Church"
-            />
           </div>
 
+          {/* ── Extra event details (collapsible) ── */}
+          <CollapsibleSection
+            title="Extra Event Details"
+            defaultOpen={!!hasExtraEventContent}
+            hasContent={hasExtraEventContent}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <Input
+                label="Enquiry Date"
+                name="enquiryDate"
+                type="date"
+                value={formData.enquiryDate || ""}
+                onChange={handleChange}
+              />
+              <Input
+                label="Colour Scheme"
+                name="colourScheme"
+                value={formData.colourScheme || ""}
+                onChange={handleChange}
+                placeholder="e.g. Blush & ivory"
+              />
+              <Input
+                label="Guest Numbers"
+                name="guestNumbers"
+                type="number"
+                value={formData.guestNumbers ?? ""}
+                onChange={handleChange}
+                placeholder="0"
+              />
+              <Input
+                label="Budget (approx.)"
+                name="budget"
+                value={formData.budget || ""}
+                onChange={handleChange}
+                placeholder="e.g. 2000"
+              />
+            </div>
+          </CollapsibleSection>
+
+          {/* ── Venue details (collapsible) ── */}
+          <CollapsibleSection
+            title="Venue Details"
+            defaultOpen={!!hasVenueContent}
+            hasContent={hasVenueContent}
+          >
+            <div className="space-y-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Venue A
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <Input
+                  label="Name"
+                  name="venueA"
+                  value={formData.venueA || ""}
+                  onChange={handleChange}
+                  placeholder="Venue name"
+                />
+                <Input
+                  label="Town"
+                  name="venueATown"
+                  value={formData.venueATown || ""}
+                  onChange={handleChange}
+                  placeholder="Town"
+                />
+                <Input
+                  label="Phone"
+                  name="venueAPhone"
+                  type="tel"
+                  value={formData.venueAPhone || ""}
+                  onChange={handleChange}
+                  placeholder="Phone"
+                />
+                <Input
+                  label="Contact"
+                  name="venueAContact"
+                  value={formData.venueAContact || ""}
+                  onChange={handleChange}
+                  placeholder="Contact name"
+                />
+              </div>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-2">
+                Venue B
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <Input
+                  label="Name"
+                  name="venueB"
+                  value={formData.venueB || ""}
+                  onChange={handleChange}
+                  placeholder="Venue name"
+                />
+                <Input
+                  label="Town"
+                  name="venueBTown"
+                  value={formData.venueBTown || ""}
+                  onChange={handleChange}
+                  placeholder="Town"
+                />
+                <Input
+                  label="Phone"
+                  name="venueBPhone"
+                  type="tel"
+                  value={formData.venueBPhone || ""}
+                  onChange={handleChange}
+                  placeholder="Phone"
+                />
+                <Input
+                  label="Contact"
+                  name="venueBContact"
+                  value={formData.venueBContact || ""}
+                  onChange={handleChange}
+                  placeholder="Contact name"
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* ── Planner details (collapsible) ── */}
+          <CollapsibleSection
+            title="Planner Details"
+            defaultOpen={!!hasPlannerContent}
+            hasContent={hasPlannerContent}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <Input
+                label="Planner Name"
+                name="plannerName"
+                value={formData.plannerName || ""}
+                onChange={handleChange}
+                placeholder="Name"
+              />
+              <Input
+                label="Company"
+                name="plannerCompany"
+                value={formData.plannerCompany || ""}
+                onChange={handleChange}
+                placeholder="Company"
+              />
+              <Input
+                label="Phone"
+                name="plannerPhone"
+                type="tel"
+                value={formData.plannerPhone || ""}
+                onChange={handleChange}
+                placeholder="Phone"
+              />
+              <Input
+                label="Email"
+                name="plannerEmail"
+                type="email"
+                value={formData.plannerEmail || ""}
+                onChange={handleChange}
+                placeholder="Email"
+              />
+            </div>
+          </CollapsibleSection>
+
+          {/* ── Notes ── */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Notes
@@ -448,20 +760,17 @@ export function EnquiryModal({
               value={formData.notes || ""}
               onChange={handleChange}
               placeholder="Add any additional notes about this enquiry..."
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors resize-none"
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors resize-none text-sm"
             />
           </div>
 
+          {/* ── Actions ── */}
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={loading}
-            >
+            <Button variant="primary" type="submit" disabled={loading}>
               {loading ? "Saving..." : "Save Enquiry"}
             </Button>
           </div>

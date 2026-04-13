@@ -85,11 +85,32 @@ export const enquiryBodySchema = z.object({
     .email("Invalid email address")
     .max(255),
   clientPhone: optionalTrimmed(50),
+  // Top-level classification
+  enquiryType: optionalTrimmed(100),
+  status: optionalTrimmed(100),
+  progress: enquiryProgress.default("New"),
+  // Event details
   eventType: optionalTrimmed(100),
   eventDate: isoDateNullable,
-  venueA: optionalTrimmed(200),
-  venueB: optionalTrimmed(200),
-  progress: enquiryProgress.default("New"),
+  enquiryDate: isoDateNullable,
+  colourScheme: optionalTrimmed(255),
+  guestNumbers: z.coerce.number().int().nullable().optional(),
+  budget: decimalField,
+  // Venue A
+  venueA: optionalTrimmed(255),
+  venueATown: optionalTrimmed(255),
+  venueAPhone: optionalTrimmed(30),
+  venueAContact: optionalTrimmed(255),
+  // Venue B
+  venueB: optionalTrimmed(255),
+  venueBTown: optionalTrimmed(255),
+  venueBPhone: optionalTrimmed(30),
+  venueBContact: optionalTrimmed(255),
+  // Planner
+  plannerName: optionalTrimmed(255),
+  plannerCompany: optionalTrimmed(255),
+  plannerPhone: optionalTrimmed(30),
+  plannerEmail: optionalTrimmed(255),
   notes: optionalTrimmed(5000),
 });
 export type EnquiryBody = z.infer<typeof enquiryBodySchema>;
