@@ -36,6 +36,13 @@
       "when": 1744828800000,
       "tag": "0004_add_product_images",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1744915200000,
+      "tag": "0005_add_bundle_fields",
+      "breakpoints": true
     }
   ]
 }

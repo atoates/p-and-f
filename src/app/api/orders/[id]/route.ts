@@ -150,6 +150,9 @@ export async function PUT(
                 unitPrice: priced.unitPrice,
                 totalPrice: priced.totalPrice,
                 imageUrl: item.imageUrl ?? null,
+                bundleId: item.bundleId ?? null,
+                bundleName: item.bundleName ?? null,
+                baseQuantity: item.baseQuantity ?? null,
                 updatedBy: ctx.userId,
               })
               .where(
@@ -169,6 +172,9 @@ export async function PUT(
               unitPrice: priced.unitPrice,
               totalPrice: priced.totalPrice,
               imageUrl: item.imageUrl ?? null,
+              bundleId: item.bundleId ?? null,
+              bundleName: item.bundleName ?? null,
+              baseQuantity: item.baseQuantity ?? null,
               createdBy: ctx.userId,
               updatedBy: ctx.userId,
             });

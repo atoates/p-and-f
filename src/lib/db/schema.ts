@@ -312,6 +312,14 @@ export const orderItems = pgTable(
     unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
     totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
     imageUrl: text("image_url"),
+    // Bundle grouping: when multiple line items belong to the same bundle
+    // (e.g. "Bridal Package"), they share a bundleId and bundleName. The
+    // baseQuantity records how many of this item are included per single
+    // bundle, so that if the bundle quantity is later edited we can scale
+    // the child line items proportionally.
+    bundleId: text("bundle_id"),
+    bundleName: text("bundle_name"),
+    baseQuantity: integer("base_quantity"),
     createdBy: text("created_by").references(() => users.id, {
       onDelete: "set null",
     }),

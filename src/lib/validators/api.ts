@@ -147,6 +147,13 @@ export const orderItemBodySchema = z.object({
   // Product image URL, captured at order time so it persists even if
   // the product library entry is later updated.
   imageUrl: optionalTrimmed(2000),
+  // Bundle grouping. When a bundle is added to an order, each child
+  // line item is persisted with a shared bundleId + bundleName so the
+  // grouping survives reload. baseQuantity records how many of this
+  // item belong per one bundle (for scaling when bundle qty changes).
+  bundleId: optionalTrimmed(100),
+  bundleName: optionalTrimmed(255),
+  baseQuantity: z.coerce.number().int().positive().optional(),
 });
 
 export const orderCreateSchema = z.object({
