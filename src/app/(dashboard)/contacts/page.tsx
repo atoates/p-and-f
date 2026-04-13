@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,16 @@ import {
   Phone,
   Mail,
   ExternalLink,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import { ContactModal } from "@/components/contacts/contact-modal";
 
 type ContactType = "customer" | "supplier" | "both";
 type TabFilter = "all" | "customer" | "supplier";
+type SortField = "name" | "company" | "email" | "phone" | "type" | "enquiries" | "location" | null;
+type SortDirection = "asc" | "desc";
 
 interface Contact {
   id: string;
@@ -60,6 +64,8 @@ export default function ContactsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const fetchContacts = useCallback(async () => {
     try {
@@ -128,8 +134,63 @@ export default function ContactsPage() {
     }
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
   const displayName = (c: Contact) =>
     [c.firstName, c.lastName].filter(Boolean).join(" ");
+
+  const displayedContacts = useMemo(() => {
+    let sorted = [...contacts];
+    if (sortField) {
+      sorted.sort((a, b) => {
+        let aValue: string | number = "";
+        let bValue: string | number = "";
+
+        switch (sortField) {
+          case "name":
+            aValue = displayName(a).toLowerCase();
+            bValue = displayName(b).toLowerCase();
+            break;
+          case "company":
+            aValue = (a.companyName || "").toLowerCase();
+            bValue = (b.companyName || "").toLowerCase();
+            break;
+          case "email":
+            aValue = (a.email || "").toLowerCase();
+            bValue = (b.email || "").toLowerCase();
+            break;
+          case "phone":
+            aValue = (a.phone || a.mobile || "").toLowerCase();
+            bValue = (b.phone || b.mobile || "").toLowerCase();
+            break;
+          case "type":
+            aValue = a.type;
+            bValue = b.type;
+            break;
+          case "enquiries":
+            aValue = a.enquiryCount || 0;
+            bValue = b.enquiryCount || 0;
+            break;
+          case "location":
+            aValue = ([a.city, a.postcode].filter(Boolean).join(", ") || "").toLowerCase();
+            bValue = ([b.city, b.postcode].filter(Boolean).join(", ") || "").toLowerCase();
+            break;
+        }
+
+        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return sorted;
+  }, [contacts, sortField, sortDirection]);
 
   const typeColour: Record<ContactType, "primary" | "warning" | "success"> = {
     customer: "primary",
@@ -225,7 +286,7 @@ export default function ContactsPage() {
                 <p className="mt-4 text-gray-600">Loading contacts...</p>
               </div>
             </div>
-          ) : contacts.length === 0 ? (
+          ) : displayedContacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <BookUser size={48} className="text-gray-300 mb-3" />
               <p className="text-gray-500 text-lg">No contacts found</p>
@@ -237,26 +298,82 @@ export default function ContactsPage() {
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Name
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("name")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Name
+                      {sortField === "name" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Company
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("company")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Company
+                      {sortField === "company" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Email
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("email")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Email
+                      {sortField === "email" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Phone
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("phone")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Phone
+                      {sortField === "phone" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Type
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("type")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Type
+                      {sortField === "type" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Enquiries
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("enquiries")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Enquiries
+                      {sortField === "enquiries" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Location
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("location")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Location
+                      {sortField === "location" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
                   </th>
                   <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
                     Actions
@@ -264,7 +381,7 @@ export default function ContactsPage() {
                 </tr>
               </thead>
               <tbody>
-                {contacts.map((contact) => (
+                {displayedContacts.map((contact) => (
                   <tr
                     key={contact.id}
                     className="border-b border-gray-200 hover:bg-gray-50 transition-colors"

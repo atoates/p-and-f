@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Pencil, Plus, Trash2, Loader2, Map, Calculator } from "lucide-react";
+import { Pencil, Plus, Trash2, Loader2, Map, Calculator, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import Link from "next/link";
 
@@ -151,6 +151,11 @@ export default function DeliveryPage() {
   });
   const [venueSubmitting, setVenueSubmitting] = useState(false);
   const [venueError, setVenueError] = useState<string | null>(null);
+
+  // Search and sort state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<string>("deliveryDate");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const [formData, setFormData] = useState<DeliveryForm>({
     orderId: "",
@@ -459,6 +464,74 @@ export default function DeliveryPage() {
     }
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const displayedSchedules = useMemo(() => {
+    let filtered = schedules;
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = schedules.filter((schedule) => {
+        const clientName = schedule.order?.enquiry?.clientName || "";
+        const venueName = schedule.venue?.name || "";
+        const address = schedule.deliveryAddress || "";
+        const driver = driverLabel(team, schedule.driverId);
+        const status = schedule.status;
+
+        return (
+          clientName.toLowerCase().includes(term) ||
+          venueName.toLowerCase().includes(term) ||
+          address.toLowerCase().includes(term) ||
+          driver.toLowerCase().includes(term) ||
+          status.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    const sorted = [...filtered].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      switch (sortField) {
+        case "deliveryDate":
+          aVal = a.deliveryDate ? new Date(a.deliveryDate).getTime() : 0;
+          bVal = b.deliveryDate ? new Date(b.deliveryDate).getTime() : 0;
+          break;
+        case "timeSlot":
+          aVal = a.timeSlot || "";
+          bVal = b.timeSlot || "";
+          break;
+        case "venue":
+          aVal = (a.venue?.name || a.deliveryAddress || "").toLowerCase();
+          bVal = (b.venue?.name || b.deliveryAddress || "").toLowerCase();
+          break;
+        case "driver":
+          aVal = driverLabel(team, a.driverId).toLowerCase();
+          bVal = driverLabel(team, b.driverId).toLowerCase();
+          break;
+        case "status":
+          aVal = a.status.toLowerCase();
+          bVal = b.status.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [schedules, searchTerm, sortField, sortDirection, team]);
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -529,113 +602,142 @@ export default function DeliveryPage() {
               </div>
             </CardBody>
           ) : (
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Event Date
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Time Slot
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Venue / Address
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Driver
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedules.map((schedule) => (
-                  <tr
-                    key={schedule.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {formatDate(schedule.deliveryDate)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {schedule.timeSlot || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
-                      {schedule.venue?.name && (
-                        <div className="font-medium text-gray-900">
-                          {schedule.venue.name}
-                        </div>
-                      )}
-                      <div className="truncate">
-                        {schedule.deliveryAddress || "-"}
+            <>
+              <div className="px-6 py-3 border-b border-gray-200">
+                <div className="flex items-center gap-2 bg-white">
+                  <Search size={18} className="text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by client, venue, address, driver, or status..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1 px-3 py-2 border-0 focus:outline-none text-sm text-gray-900 placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              <table className="w-full min-w-[800px]">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors" onClick={() => handleSort("deliveryDate")}>
+                      <div className="flex items-center gap-1">
+                        Event Date
+                        {sortField === "deliveryDate" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {driverLabel(team, schedule.driverId)}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <Badge
-                        variant={
-                          statusColors[
-                            schedule.status as keyof typeof statusColors
-                          ]
-                        }
-                      >
-                        {schedule.status
-                          .split("_")
-                          .map(
-                            (word) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
-                          .join(" ")}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Can permission="delivery:read">
-                          <Link
-                            href={`/delivery/${schedule.id}/travel-costs`}
-                            className="p-2 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded"
-                            title="Travel costs"
-                          >
-                            <Calculator size={16} />
-                          </Link>
-                        </Can>
-                        <Can permission="delivery:update">
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(schedule)}
-                            className="p-2 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded"
-                            aria-label="Edit delivery"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                        </Can>
-                        <Can permission="delivery:delete">
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(schedule)}
-                            disabled={deletingId === schedule.id}
-                            className="p-2 text-gray-600 hover:text-red-700 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                            aria-label="Delete delivery"
-                          >
-                            {deletingId === schedule.id ? (
-                              <Loader2 size={16} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={16} />
-                            )}
-                          </button>
-                        </Can>
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors" onClick={() => handleSort("timeSlot")}>
+                      <div className="flex items-center gap-1">
+                        Time Slot
+                        {sortField === "timeSlot" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
                       </div>
-                    </td>
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors" onClick={() => handleSort("venue")}>
+                      <div className="flex items-center gap-1">
+                        Venue / Address
+                        {sortField === "venue" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors" onClick={() => handleSort("driver")}>
+                      <div className="flex items-center gap-1">
+                        Driver
+                        {sortField === "driver" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors" onClick={() => handleSort("status")}>
+                      <div className="flex items-center gap-1">
+                        Status
+                        {sortField === "status" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {displayedSchedules.map((schedule) => (
+                    <tr
+                      key={schedule.id}
+                      className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {formatDate(schedule.deliveryDate)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {schedule.timeSlot || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
+                        {schedule.venue?.name && (
+                          <div className="font-medium text-gray-900">
+                            {schedule.venue.name}
+                          </div>
+                        )}
+                        <div className="truncate">
+                          {schedule.deliveryAddress || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {driverLabel(team, schedule.driverId)}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <Badge
+                          variant={
+                            statusColors[
+                              schedule.status as keyof typeof statusColors
+                            ]
+                          }
+                        >
+                          {schedule.status
+                            .split("_")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            )
+                            .join(" ")}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Can permission="delivery:read">
+                            <Link
+                              href={`/delivery/${schedule.id}/travel-costs`}
+                              className="p-2 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded"
+                              title="Travel costs"
+                            >
+                              <Calculator size={16} />
+                            </Link>
+                          </Can>
+                          <Can permission="delivery:update">
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(schedule)}
+                              className="p-2 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded"
+                              aria-label="Edit delivery"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                          </Can>
+                          <Can permission="delivery:delete">
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(schedule)}
+                              disabled={deletingId === schedule.id}
+                              className="p-2 text-gray-600 hover:text-red-700 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label="Delete delivery"
+                            >
+                              {deletingId === schedule.id ? (
+                                <Loader2 size={16} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={16} />
+                              )}
+                            </button>
+                          </Can>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
       </Card>

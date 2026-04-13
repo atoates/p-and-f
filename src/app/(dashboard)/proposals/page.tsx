@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
-import { Plus, Download } from "lucide-react";
-import { ColDef } from "ag-grid-community";
-import { DataGrid } from "@/components/ui/data-grid";
-import { StatusBadgeRenderer, DateRenderer } from "@/components/ui/grid-renderers";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Download, Loader2, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { Can } from "@/components/auth/can";
 
 interface Proposal {
@@ -30,6 +28,26 @@ interface Order {
   };
 }
 
+type SortField = "client" | "orderId" | "status" | "sentDate" | "created" | null;
+type SortDirection = "asc" | "desc";
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const statusColors: Record<string, "primary" | "secondary" | "success" | "warning" | "danger"> = {
+  draft: "secondary",
+  sent: "warning",
+  accepted: "success",
+  declined: "danger",
+};
+
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +59,9 @@ export default function ProposalsPage() {
   const [formData, setFormData] = useState({ orderId: "", status: "draft" });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -158,70 +179,59 @@ export default function ProposalsPage() {
     }
   };
 
-  const columnDefs: ColDef[] = [
-    {
-      field: "order.enquiry.clientName",
-      headerName: "Client",
-      width: 180,
-      sortable: true,
-      filter: true,
-      valueGetter: (params) => params.data?.order?.enquiry?.clientName || "Unknown",
-    },
-    {
-      field: "orderId",
-      headerName: "Order ID",
-      width: 150,
-      sortable: true,
-      filter: true,
-      valueFormatter: (params) => {
-        const orderId = params.value || "";
-        return `${orderId.slice(0, 8)}...`;
-      },
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      width: 120,
-      cellRenderer: StatusBadgeRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "sentAt",
-      headerName: "Sent Date",
-      width: 130,
-      cellRenderer: DateRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "createdAt",
-      headerName: "Created Date",
-      width: 130,
-      cellRenderer: DateRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "id",
-      headerName: "Actions",
-      width: 100,
-      sortable: false,
-      filter: false,
-      cellRenderer: (params: any) => (
-        <div className="flex items-center justify-center h-full">
-          <button
-            onClick={() => handleDownload(params.value)}
-            disabled={downloadingId === params.value}
-            className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 disabled:opacity-50"
-            title="Download PDF"
-          >
-            <Download size={18} />
-          </button>
-        </div>
-      ),
-    },
-  ];
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const displayedProposals = useMemo(() => {
+    let filtered = proposals.filter((proposal) => {
+      const clientName = (proposal.order?.enquiry?.clientName || "").toLowerCase();
+      const status = proposal.status.toLowerCase();
+      const search = searchTerm.toLowerCase();
+      return clientName.includes(search) || status.includes(search);
+    });
+
+    if (sortField) {
+      filtered.sort((a, b) => {
+        let aValue: string | number = "";
+        let bValue: string | number = "";
+
+        switch (sortField) {
+          case "client":
+            aValue = (a.order?.enquiry?.clientName || "").toLowerCase();
+            bValue = (b.order?.enquiry?.clientName || "").toLowerCase();
+            break;
+          case "orderId":
+            aValue = a.orderId.toLowerCase();
+            bValue = b.orderId.toLowerCase();
+            break;
+          case "status":
+            aValue = a.status.toLowerCase();
+            bValue = b.status.toLowerCase();
+            break;
+          case "sentDate":
+            aValue = a.sentAt || "";
+            bValue = b.sentAt || "";
+            break;
+          case "created":
+            aValue = a.createdAt;
+            bValue = b.createdAt;
+            break;
+        }
+
+        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+  }, [proposals, searchTerm, sortField, sortDirection]);
+
 
   return (
     <div>
@@ -247,14 +257,128 @@ export default function ProposalsPage() {
       )}
 
       <Card>
-        <CardBody className="p-0">
-          <DataGrid
-            rowData={proposals}
-            columnDefs={columnDefs}
-            loading={loading}
-            emptyMessage="No proposals yet. Create your first proposal to get started."
-            pageSize={20}
-          />
+        <div className="px-6 py-3 border-b border-gray-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search by client name or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent"
+            />
+          </div>
+        </div>
+        <CardBody className="p-0 overflow-x-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : displayedProposals.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-gray-600">No proposals found. Create your first proposal to get started.</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("client")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Client
+                      {sortField === "client" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("orderId")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Order ID
+                      {sortField === "orderId" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("status")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Status
+                      {sortField === "status" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("sentDate")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Sent Date
+                      {sortField === "sentDate" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("created")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Created
+                      {sortField === "created" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedProposals.map((proposal) => (
+                  <tr key={proposal.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                      {proposal.order?.enquiry?.clientName || "Unknown"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {proposal.orderId.slice(0, 8)}...
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <Badge variant={statusColors[proposal.status] || "secondary"}>
+                        {proposal.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {formatDate(proposal.sentAt)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {formatDate(proposal.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <button
+                        onClick={() => handleDownload(proposal.id)}
+                        disabled={downloadingId === proposal.id}
+                        className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                        title="Download PDF"
+                      >
+                        {downloadingId === proposal.id ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Download size={18} />
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardBody>
       </Card>
 

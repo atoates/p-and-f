@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Download, CreditCard } from "lucide-react";
-import { ColDef } from "ag-grid-community";
-import { DataGrid } from "@/components/ui/data-grid";
-import { StatusBadgeRenderer, CurrencyRenderer, DateRenderer } from "@/components/ui/grid-renderers";
+import { Plus, Download, CreditCard, Loader2, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Can } from "@/components/auth/can";
 
 interface Invoice {
@@ -51,6 +49,34 @@ interface CreateInvoiceFormData {
   status: string;
 }
 
+type SortField = "invoiceNumber" | "client" | "status" | "totalAmount" | "dueDate" | "paidDate" | null;
+type SortDirection = "asc" | "desc";
+
+// Helper functions
+const formatPrice = (amount: string | number): string => {
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  if (Number.isNaN(num)) return "0.00";
+  return num.toFixed(2);
+};
+
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return "-";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  } catch {
+    return "-";
+  }
+};
+
+const statusColours: Record<string, "secondary" | "warning" | "success" | "danger"> = {
+  draft: "secondary",
+  sent: "warning",
+  paid: "success",
+  overdue: "danger",
+  cancelled: "danger",
+};
+
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +95,9 @@ export default function InvoicesPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   // Payment recording modal state. When `paymentInvoice` is set, the
   // modal renders with that invoice preloaded. We track the form
@@ -291,86 +320,64 @@ export default function InvoicesPage() {
     }
   };
 
-  const columnDefs: ColDef[] = [
-    {
-      field: "invoiceNumber",
-      headerName: "Invoice Number",
-      width: 150,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "order.enquiry.clientName",
-      headerName: "Client",
-      width: 180,
-      sortable: true,
-      filter: true,
-      valueGetter: (params) => params.data?.order?.enquiry?.clientName || "Unknown",
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      width: 120,
-      cellRenderer: StatusBadgeRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "totalAmount",
-      headerName: "Total Amount",
-      width: 130,
-      cellRenderer: CurrencyRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "dueDate",
-      headerName: "Due Date",
-      width: 130,
-      cellRenderer: DateRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "paidAt",
-      headerName: "Paid Date",
-      width: 130,
-      cellRenderer: DateRenderer,
-      sortable: true,
-      filter: true,
-    },
-    {
-      field: "id",
-      headerName: "Actions",
-      width: 140,
-      sortable: false,
-      filter: false,
-      cellRenderer: (params: any) => {
-        const invoice = params.data as Invoice;
-        return (
-          <div className="flex items-center justify-center h-full gap-1">
-            <button
-              onClick={() => handleDownload(params.value)}
-              disabled={downloadingId === params.value}
-              className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 disabled:opacity-50"
-              title="Download PDF"
-            >
-              <Download size={18} />
-            </button>
-            {invoice.status !== "paid" && (
-              <button
-                onClick={() => handleOpenPaymentModal(invoice)}
-                className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200"
-                title="Record payment"
-              >
-                <CreditCard size={18} />
-              </button>
-            )}
-          </div>
-        );
-      },
-    },
-  ];
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const displayedInvoices = useMemo(() => {
+    let filtered = invoices.filter((invoice) => {
+      const invoiceNum = invoice.invoiceNumber.toLowerCase();
+      const clientName = (invoice.order?.enquiry?.clientName || "").toLowerCase();
+      const status = invoice.status.toLowerCase();
+      const search = searchTerm.toLowerCase();
+      return invoiceNum.includes(search) || clientName.includes(search) || status.includes(search);
+    });
+
+    if (sortField) {
+      filtered.sort((a, b) => {
+        let aValue: string | number = "";
+        let bValue: string | number = "";
+
+        switch (sortField) {
+          case "invoiceNumber":
+            aValue = a.invoiceNumber.toLowerCase();
+            bValue = b.invoiceNumber.toLowerCase();
+            break;
+          case "client":
+            aValue = (a.order?.enquiry?.clientName || "").toLowerCase();
+            bValue = (b.order?.enquiry?.clientName || "").toLowerCase();
+            break;
+          case "status":
+            aValue = a.status.toLowerCase();
+            bValue = b.status.toLowerCase();
+            break;
+          case "totalAmount":
+            aValue = parseFloat(a.totalAmount) || 0;
+            bValue = parseFloat(b.totalAmount) || 0;
+            break;
+          case "dueDate":
+            aValue = a.dueDate || "";
+            bValue = b.dueDate || "";
+            break;
+          case "paidDate":
+            aValue = a.paidAt || "";
+            bValue = b.paidAt || "";
+            break;
+        }
+
+        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+  }, [invoices, searchTerm, sortField, sortDirection]);
+
 
   return (
     <div>
@@ -396,14 +403,144 @@ export default function InvoicesPage() {
       )}
 
       <Card>
-        <CardBody className="p-0">
-          <DataGrid
-            rowData={invoices}
-            columnDefs={columnDefs}
-            loading={loading}
-            emptyMessage="No invoices yet. Create your first invoice to get started."
-            pageSize={20}
-          />
+        <div className="px-6 py-3 border-b border-gray-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search by invoice number, client name, or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent"
+            />
+          </div>
+        </div>
+        <CardBody className="p-0 overflow-x-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="mr-2 animate-spin" size={20} />
+              <span className="text-gray-600">Loading invoices...</span>
+            </div>
+          ) : displayedInvoices.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No invoices found. Create your first invoice to get started.</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("invoiceNumber")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Invoice Number
+                      {sortField === "invoiceNumber" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("client")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Client
+                      {sortField === "client" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("status")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Status
+                      {sortField === "status" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("totalAmount")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Total Amount
+                      {sortField === "totalAmount" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("dueDate")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Due Date
+                      {sortField === "dueDate" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("paidDate")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Paid Date
+                      {sortField === "paidDate" && (
+                        sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedInvoices.map((invoice) => (
+                  <tr key={invoice.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colours">
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{invoice.invoiceNumber}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{invoice.order?.enquiry?.clientName || "Unknown"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <Badge variant={statusColours[invoice.status] || "secondary"}>
+                        {invoice.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">£{formatPrice(invoice.totalAmount)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{formatDate(invoice.dueDate)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{formatDate(invoice.paidAt)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDownload(invoice.id)}
+                          disabled={downloadingId === invoice.id}
+                          className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 disabled:opacity-50 transition-colours"
+                          title="Download PDF"
+                        >
+                          {downloadingId === invoice.id ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Download size={18} />
+                          )}
+                        </button>
+                        {invoice.status !== "paid" && (
+                          <button
+                            onClick={() => handleOpenPaymentModal(invoice)}
+                            className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 transition-colours"
+                            title="Record payment"
+                          >
+                            <CreditCard size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardBody>
       </Card>
 

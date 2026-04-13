@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, Loader2, Search, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { OrderModal } from "@/components/orders/order-modal";
 import { Can } from "@/components/auth/can";
@@ -59,6 +59,9 @@ export default function OrdersPage() {
   // Per-row delete state (#27): prevents double-click and shows a
   // spinner while the DELETE is in flight.
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<string | null>("eventDate");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -180,6 +183,91 @@ export default function OrdersPage() {
     }
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const displayedOrders = useMemo(() => {
+    let filtered = orders;
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((order) => {
+        const clientName = (order.enquiry?.clientName || "").toLowerCase();
+        const status = order.status.toLowerCase();
+        const eventType = (order.enquiry?.eventType || "").toLowerCase();
+        return (
+          clientName.includes(term) ||
+          status.includes(term) ||
+          eventType.includes(term)
+        );
+      });
+    }
+
+    // Apply sorting
+    if (!sortField) {
+      return filtered;
+    }
+
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case "client":
+          aValue = (a.enquiry?.clientName || "").toLowerCase();
+          bValue = (b.enquiry?.clientName || "").toLowerCase();
+          break;
+        case "eventDate":
+          aValue = a.enquiry?.eventDate ? new Date(a.enquiry.eventDate).getTime() : null;
+          bValue = b.enquiry?.eventDate ? new Date(b.enquiry.eventDate).getTime() : null;
+          // Handle null dates (sort to end)
+          if (aValue === null && bValue === null) return 0;
+          if (aValue === null) return 1;
+          if (bValue === null) return -1;
+          break;
+        case "status":
+          aValue = a.status.toLowerCase();
+          bValue = b.status.toLowerCase();
+          break;
+        case "version":
+          aValue = a.version;
+          bValue = b.version;
+          break;
+        case "totalPrice":
+          aValue = a.totalPrice ? parseFloat(a.totalPrice) : 0;
+          bValue = b.totalPrice ? parseFloat(b.totalPrice) : 0;
+          break;
+        case "created":
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      // String comparison
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Numeric comparison
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [orders, searchTerm, sortField, sortDirection]);
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -204,6 +292,20 @@ export default function OrdersPage() {
       )}
 
       <Card>
+        {!loading && orders.length > 0 && (
+          <div className="px-6 py-3 border-b border-gray-200">
+            <div className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-white">
+              <Search size={16} className="text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by client, status, or event type..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 outline-none text-sm bg-transparent text-gray-900 placeholder-gray-500"
+              />
+            </div>
+          </div>
+        )}
         <div className="overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -223,23 +325,59 @@ export default function OrdersPage() {
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Client
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("client")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Client
+                      {sortField === "client" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Event Date
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("eventDate")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Event Date
+                      {sortField === "eventDate" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Status
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("status")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Status
+                      {sortField === "status" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Version
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("version")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Version
+                      {sortField === "version" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Total Price
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("totalPrice")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Total Price
+                      {sortField === "totalPrice" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Created
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("created")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Created
+                      {sortField === "created" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
                     Actions
@@ -247,7 +385,7 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
+                {displayedOrders.map((order) => (
                   <tr
                     key={order.id}
                     className="border-b border-gray-200 hover:bg-gray-50 transition-colors"

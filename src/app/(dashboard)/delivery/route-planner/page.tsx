@@ -62,6 +62,8 @@ interface Address {
 interface OrderedStop {
   address: string;
   label?: string;
+  lat?: number;
+  lng?: number;
   legDistanceMiles: number;
   legDurationMinutes: number;
 }
@@ -95,6 +97,30 @@ function formatDuration(mins: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+/**
+ * Build a Google Maps Embed API URL to show the route as an interactive
+ * map. Uses the Directions mode with origin, destination (last stop),
+ * and any intermediate stops as waypoints.
+ */
+function buildEmbedUrl(
+  origin: string,
+  stops: Array<{ address: string }>
+): string {
+  if (stops.length === 0) return "";
+  const destination = stops[stops.length - 1].address;
+  const waypoints = stops.slice(0, -1).map((s) => s.address).join("|");
+  const params = new URLSearchParams({
+    key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
+    origin,
+    destination,
+    mode: "driving",
+  });
+  if (waypoints) {
+    params.append("waypoints", waypoints);
+  }
+  return `https://www.google.com/maps/embed/v1/directions?${params.toString()}`;
+}
+
 export default function RoutePlannerPage() {
   const [allSchedules, setAllSchedules] = useState<DeliverySchedule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +128,7 @@ export default function RoutePlannerPage() {
     formatDateForInput(new Date())
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [studioAddress, setStudioAddress] = useState("");
+  const [startingPoint, setStartingPoint] = useState("");
 
   // Route result state
   const [optimising, setOptimising] = useState(false);
@@ -138,7 +164,8 @@ export default function RoutePlannerPage() {
               studio.city,
               studio.postcode,
             ].filter(Boolean);
-            setStudioAddress(parts.join(", "));
+            const addr = parts.join(", ");
+            setStartingPoint(addr);
           }
         }
       } catch (err) {
@@ -206,9 +233,9 @@ export default function RoutePlannerPage() {
       toast.error("Select at least 2 deliveries to optimise a route");
       return;
     }
-    if (!studioAddress) {
+    if (!startingPoint.trim()) {
       toast.error(
-        "No studio address found. Please add a studio address in Settings."
+        "Please enter a starting point address above."
       );
       return;
     }
@@ -225,7 +252,7 @@ export default function RoutePlannerPage() {
       const res = await fetch("/api/maps/optimise-route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ origin: studioAddress, stops }),
+        body: JSON.stringify({ origin: startingPoint.trim(), stops }),
       });
 
       if (!res.ok) {
@@ -306,23 +333,38 @@ export default function RoutePlannerPage() {
         </Link>
       </div>
 
-      {/* Date selector */}
+      {/* Settings: date and starting point */}
       <Card className="mb-6">
         <CardBody>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">
-              Delivery date
-            </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent text-sm"
-            />
-            <span className="text-sm text-gray-500">
-              {daySchedules.length} delivery
-              {daySchedules.length !== 1 ? "ies" : "y"} scheduled
-            </span>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Delivery date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent text-sm"
+              />
+              <span className="text-sm text-gray-500 whitespace-nowrap">
+                {daySchedules.length} delivery
+                {daySchedules.length !== 1 ? "ies" : "y"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 flex-1">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap flex items-center gap-1.5">
+                <MapPin size={14} className="text-[#1B4332]" />
+                Starting point
+              </label>
+              <input
+                type="text"
+                value={startingPoint}
+                onChange={(e) => setStartingPoint(e.target.value)}
+                placeholder="Enter starting address..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent text-sm"
+              />
+            </div>
           </div>
         </CardBody>
       </Card>
@@ -490,73 +532,93 @@ export default function RoutePlannerPage() {
             )}
 
             {routeResult && (
-              <Card>
-                <CardBody>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-serif font-semibold text-gray-900">
-                      Optimised Route
-                    </h3>
-                    <a
-                      href={routeResult.mapUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-[#1B4332] hover:underline font-medium"
-                    >
-                      Open in Google Maps
-                      <ExternalLink size={14} />
-                    </a>
+              <>
+                {/* Embedded Google Map */}
+                <Card className="overflow-hidden">
+                  <div className="relative w-full" style={{ height: 420 }}>
+                    <iframe
+                      title="Route map"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={buildEmbedUrl(startingPoint, routeResult.orderedStops)}
+                      allowFullScreen
+                    />
                   </div>
+                </Card>
 
-                  {/* Start point */}
-                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
-                    <div className="w-8 h-8 rounded-full bg-[#1B4332] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                      S
+                <Card>
+                  <CardBody>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-serif font-semibold text-gray-900">
+                        Optimised Route
+                      </h3>
+                      <a
+                        href={routeResult.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-[#1B4332] hover:underline font-medium"
+                      >
+                        Open in Google Maps
+                        <ExternalLink size={14} />
+                      </a>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        Studio (Start)
-                      </p>
-                      <p className="text-xs text-gray-500">{studioAddress}</p>
-                    </div>
-                  </div>
 
-                  {/* Ordered stops */}
-                  <div className="space-y-3">
-                    {routeResult.orderedStops.map((stop, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-sage-100 text-[#1B4332] flex items-center justify-center text-xs font-bold shrink-0">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
-                            {stop.label || `Stop ${idx + 1}`}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {stop.address}
-                          </p>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                            <span>
-                              {stop.legDistanceMiles.toFixed(1)} miles
-                            </span>
-                            <span>
-                              {formatDuration(stop.legDurationMinutes)}
-                            </span>
+                    {/* Start point */}
+                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                      <div className="w-8 h-8 rounded-full bg-[#1B4332] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                        S
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          Start
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {startingPoint}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Ordered stops */}
+                    <div className="space-y-3">
+                      {routeResult.orderedStops.map((stop, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-sage-100 text-[#1B4332] flex items-center justify-center text-xs font-bold shrink-0">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">
+                              {stop.label || `Stop ${idx + 1}`}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {stop.address}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                              <span>
+                                {stop.legDistanceMiles.toFixed(1)} miles
+                              </span>
+                              <span>
+                                {formatDuration(stop.legDurationMinutes)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Totals */}
-                  <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">Total:</span>{" "}
-                      {routeResult.totalDistanceMiles.toFixed(1)} miles,{" "}
-                      {formatDuration(routeResult.totalDurationMinutes)}
+                      ))}
                     </div>
-                  </div>
-                </CardBody>
-              </Card>
+
+                    {/* Totals */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Total:</span>{" "}
+                        {routeResult.totalDistanceMiles.toFixed(1)} miles,{" "}
+                        {formatDuration(routeResult.totalDurationMinutes)}
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </>
             )}
 
             {/* AI advice */}

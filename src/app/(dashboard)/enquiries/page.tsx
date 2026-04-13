@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, Trash2, FilePlus, Archive, ArchiveRestore, Loader2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, FilePlus, Archive, ArchiveRestore, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import { EnquiryModal } from "@/components/enquiries/enquiry-modal";
 
@@ -43,6 +43,8 @@ export default function EnquiriesPage() {
   // round-trip.
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [view, setView] = useState<EnquiryView>("active");
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const refreshEnquiries = async (nextView: EnquiryView = view) => {
     const response = await fetch(`/api/enquiries?view=${nextView}`);
@@ -105,6 +107,75 @@ export default function EnquiriesPage() {
       year: "numeric",
     });
   };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const displayedEnquiries = useMemo(() => {
+    if (!sortField) return filteredEnquiries;
+
+    const sorted = [...filteredEnquiries].sort((a, b) => {
+      let aValue: string | number | undefined;
+      let bValue: string | number | undefined;
+
+      switch (sortField) {
+        case "clientName":
+          aValue = a.clientName.toLowerCase();
+          bValue = b.clientName.toLowerCase();
+          break;
+        case "clientEmail":
+          aValue = a.clientEmail.toLowerCase();
+          bValue = b.clientEmail.toLowerCase();
+          break;
+        case "clientPhone":
+          aValue = (a.clientPhone || "").toLowerCase();
+          bValue = (b.clientPhone || "").toLowerCase();
+          break;
+        case "eventType":
+          aValue = (a.eventType || "").toLowerCase();
+          bValue = (b.eventType || "").toLowerCase();
+          break;
+        case "eventDate":
+          aValue = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+          bValue = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+          break;
+        case "venue":
+          aValue = (a.venueA || "").toLowerCase();
+          bValue = (b.venueA || "").toLowerCase();
+          break;
+        case "progress":
+          aValue = a.progress.toLowerCase();
+          bValue = b.progress.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue === "" && bValue === "") return 0;
+      if (aValue === "") return 1;
+      if (bValue === "") return -1;
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      return 0;
+    });
+
+    return sorted;
+  }, [filteredEnquiries, sortField, sortDirection]);
 
   const handleOpenModal = (enquiry?: Enquiry) => {
     setSelectedEnquiry(enquiry || null);
@@ -318,7 +389,7 @@ export default function EnquiriesPage() {
                 <p className="mt-4 text-gray-600">Loading enquiries...</p>
               </div>
             </div>
-          ) : filteredEnquiries.length === 0 ? (
+          ) : displayedEnquiries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <p className="text-gray-500 text-lg">No enquiries found</p>
               <p className="text-gray-400 mt-1">Try adjusting your filters or add a new enquiry</p>
@@ -327,31 +398,73 @@ export default function EnquiriesPage() {
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Client Name
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("clientName")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Client Name
+                      {sortField === "clientName" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Email
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("clientEmail")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Email
+                      {sortField === "clientEmail" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Phone
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("clientPhone")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Phone
+                      {sortField === "clientPhone" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Event Type
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("eventType")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Event Type
+                      {sortField === "eventType" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Event Date
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("eventDate")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Event Date
+                      {sortField === "eventDate" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Venue
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("venue")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Venue
+                      {sortField === "venue" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Progress
+                  <th
+                    className="px-6 py-4 text-left text-sm font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("progress")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Progress
+                      {sortField === "progress" && (sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredEnquiries.map((enquiry) => (
+                {displayedEnquiries.map((enquiry) => (
                   <tr
                     key={enquiry.id}
                     className="border-b border-gray-200 hover:bg-gray-50 transition-colors"

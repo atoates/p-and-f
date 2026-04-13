@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Settings } from "lucide-react";
+import { GlobalSearch } from "./global-search";
 
 export function Header() {
   return (
@@ -13,6 +14,7 @@ export function Header() {
       </h1>
 
       <div className="flex items-center gap-2 sm:gap-4">
+        <GlobalSearch />
         <Link
           href="/settings"
           aria-label="Settings"
