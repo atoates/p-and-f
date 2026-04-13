@@ -108,6 +108,10 @@ export async function POST(request: NextRequest) {
             baseCost: priced.baseCost,
             unitPrice: priced.unitPrice,
             totalPrice: priced.totalPrice,
+            imageUrl: raw.imageUrl ?? null,
+            bundleId: raw.bundleId ?? null,
+            bundleName: raw.bundleName ?? null,
+            baseQuantity: raw.baseQuantity ?? null,
             createdBy: ctx.userId,
             updatedBy: ctx.userId,
           });

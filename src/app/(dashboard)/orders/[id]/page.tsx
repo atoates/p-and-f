@@ -29,6 +29,9 @@ interface OrderItem {
   unitPrice: string;
   totalPrice: string;
   imageUrl?: string | null;
+  bundleId?: string | null;
+  bundleName?: string | null;
+  baseQuantity?: number | null;
 }
 
 interface Enquiry {
@@ -563,36 +566,113 @@ export default function OrderDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items.map((item) => (
-                    <tr key={item.id} className="border-b border-gray-100">
-                      <td className="px-6 py-3 text-sm text-gray-900">
-                        <span className="flex items-center gap-2">
-                          {item.imageUrl && (
-                            <ProductImage
-                              imageUrl={item.imageUrl}
-                              name={item.description}
-                              category={item.category}
-                              showThumbnail
-                              thumbnailSize={28}
-                            />
-                          )}
-                          {item.description}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600">
-                        {item.category || "-"}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600 text-right">
-                        {item.quantity}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600 text-right">
-                        {formatPrice(item.unitPrice)}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-900 text-right font-medium">
-                        {formatPrice(item.totalPrice)}
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    // Group items by bundleId so that bundles render as a
+                    // labelled section with their children indented beneath.
+                    const rows: React.ReactNode[] = [];
+                    const seenBundles = new Set<string>();
+                    const items = order.items ?? [];
+                    items.forEach((item) => {
+                      if (item.bundleId) {
+                        if (seenBundles.has(item.bundleId)) return;
+                        seenBundles.add(item.bundleId);
+                        const bundleChildren = items.filter(
+                          (i) => i.bundleId === item.bundleId
+                        );
+                        const bundleTotal = bundleChildren.reduce(
+                          (sum, i) => sum + parseFloat(i.totalPrice || "0"),
+                          0
+                        );
+                        rows.push(
+                          <tr
+                            key={`bundle-${item.bundleId}`}
+                            className="border-b border-gray-200 bg-[#F3F6F0]"
+                          >
+                            <td
+                              colSpan={4}
+                              className="px-6 py-2 text-sm font-semibold text-[#1B4332]"
+                            >
+                              <span className="inline-flex items-center gap-2">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#1B4332]" />
+                                Bundle: {item.bundleName || "Bundle"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-2 text-sm font-semibold text-[#1B4332] text-right">
+                              {formatPrice(bundleTotal.toFixed(2))}
+                            </td>
+                          </tr>
+                        );
+                        bundleChildren.forEach((child) => {
+                          rows.push(
+                            <tr
+                              key={child.id}
+                              className="border-b border-gray-100"
+                            >
+                              <td className="px-6 py-3 text-sm text-gray-900 pl-10">
+                                <span className="flex items-center gap-2">
+                                  {child.imageUrl && (
+                                    <ProductImage
+                                      imageUrl={child.imageUrl}
+                                      name={child.description}
+                                      category={child.category}
+                                      showThumbnail
+                                      thumbnailSize={28}
+                                    />
+                                  )}
+                                  <span className="text-gray-400">↳</span>
+                                  {child.description}
+                                </span>
+                              </td>
+                              <td className="px-6 py-3 text-sm text-gray-600">
+                                {child.category || "-"}
+                              </td>
+                              <td className="px-6 py-3 text-sm text-gray-600 text-right">
+                                {child.quantity}
+                              </td>
+                              <td className="px-6 py-3 text-sm text-gray-600 text-right">
+                                {formatPrice(child.unitPrice)}
+                              </td>
+                              <td className="px-6 py-3 text-sm text-gray-900 text-right font-medium">
+                                {formatPrice(child.totalPrice)}
+                              </td>
+                            </tr>
+                          );
+                        });
+                        return;
+                      }
+                      rows.push(
+                        <tr key={item.id} className="border-b border-gray-100">
+                          <td className="px-6 py-3 text-sm text-gray-900">
+                            <span className="flex items-center gap-2">
+                              {item.imageUrl && (
+                                <ProductImage
+                                  imageUrl={item.imageUrl}
+                                  name={item.description}
+                                  category={item.category}
+                                  showThumbnail
+                                  thumbnailSize={28}
+                                />
+                              )}
+                              {item.description}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3 text-sm text-gray-600">
+                            {item.category || "-"}
+                          </td>
+                          <td className="px-6 py-3 text-sm text-gray-600 text-right">
+                            {item.quantity}
+                          </td>
+                          <td className="px-6 py-3 text-sm text-gray-600 text-right">
+                            {formatPrice(item.unitPrice)}
+                          </td>
+                          <td className="px-6 py-3 text-sm text-gray-900 text-right font-medium">
+                            {formatPrice(item.totalPrice)}
+                          </td>
+                        </tr>
+                      );
+                    });
+                    return rows;
+                  })()}
                 </tbody>
               </table>
               </div>
@@ -874,7 +954,13 @@ export default function OrderDetailPage() {
             status: order.status as any,
             version: order.version ?? 1,
             totalPrice: order.totalPrice,
-            items: order.items,
+            items: order.items?.map((i) => ({
+              ...i,
+              imageUrl: i.imageUrl ?? undefined,
+              bundleId: i.bundleId ?? undefined,
+              bundleName: i.bundleName ?? undefined,
+              baseQuantity: i.baseQuantity ?? undefined,
+            })),
             enquiry: order.enquiry ? { clientName: order.enquiry.clientName } : undefined,
             createdAt: order.createdAt,
           }}
