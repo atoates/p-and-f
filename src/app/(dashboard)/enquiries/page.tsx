@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { InlineSelect } from "@/components/ui/inline-select";
 import { Plus, Search, Edit2, Trash2, FilePlus, Archive, ArchiveRestore, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import { EnquiryModal } from "@/components/enquiries/enquiry-modal";
@@ -89,15 +89,6 @@ export default function EnquiriesPage() {
 
     setFilteredEnquiries(filtered);
   }, [searchTerm, selectedStatus, enquiries]);
-
-  const statusColors: Record<string, "primary" | "success" | "warning" | "danger" | "secondary"> = {
-    New: "warning",
-    TBD: "secondary",
-    Live: "success",
-    Done: "primary",
-    Placed: "primary",
-    Order: "success",
-  };
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "-";
@@ -494,9 +485,35 @@ export default function EnquiriesPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <Badge variant={statusColors[enquiry.progress as keyof typeof statusColors]}>
-                          {enquiry.progress}
-                        </Badge>
+                        <InlineSelect
+                          ariaLabel="Enquiry progress"
+                          value={enquiry.progress || "New"}
+                          options={[
+                            { value: "New", label: "New", className: "bg-amber-50 text-amber-700 border border-amber-200" },
+                            { value: "TBD", label: "TBD", className: "bg-gray-100 text-gray-700 border border-gray-200" },
+                            { value: "Live", label: "Live", className: "bg-blue-50 text-blue-700 border border-blue-200" },
+                            { value: "Done", label: "Done", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+                            { value: "Placed", label: "Placed", className: "bg-[#E8EFE5] text-[#1B4332] border border-[#1B4332]/20" },
+                            { value: "Order", label: "Order", className: "bg-[#1B4332] text-white border border-[#1B4332]" },
+                          ]}
+                          onChange={async (next) => {
+                            const res = await fetch(
+                              `/api/enquiries/${enquiry.id}`,
+                              {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  ...enquiry,
+                                  progress: next,
+                                }),
+                              }
+                            );
+                            if (!res.ok)
+                              throw new Error("Failed to update progress");
+                            await refreshEnquiries();
+                            toast.success("Progress updated");
+                          }}
+                        />
                         {enquiry.progress !== "Order" && (
                           <Can permission="orders:create">
                             <button

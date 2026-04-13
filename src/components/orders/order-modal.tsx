@@ -715,10 +715,10 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
                   rendered.push(
                     <div
                       key={item.bundleId}
-                      className="border border-[#1B4332] border-opacity-30 rounded-lg overflow-hidden"
+                      className="border border-gray-200 rounded-lg overflow-hidden"
                     >
                       {/* Bundle header */}
-                      <div className="bg-sage-50 px-4 py-3 flex items-center gap-3">
+                      <div className="bg-[#F3F6F0] px-4 py-3 flex items-center gap-3 border-b border-gray-200">
                         <button
                           type="button"
                           onClick={() =>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Download, CreditCard, Loader2, Search, ChevronUp, ChevronDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { InlineSelect } from "@/components/ui/inline-select";
 import { Can } from "@/components/auth/can";
 
 interface Invoice {
@@ -67,14 +67,6 @@ const formatDate = (dateString: string | null | undefined): string => {
   } catch {
     return "-";
   }
-};
-
-const statusColours: Record<string, "secondary" | "warning" | "success" | "danger"> = {
-  draft: "secondary",
-  sent: "warning",
-  paid: "success",
-  overdue: "danger",
-  cancelled: "danger",
 };
 
 export default function InvoicesPage() {
@@ -504,9 +496,32 @@ export default function InvoicesPage() {
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">{invoice.invoiceNumber}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{invoice.order?.enquiry?.clientName || "Unknown"}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      <Badge variant={statusColours[invoice.status] || "secondary"}>
-                        {invoice.status}
-                      </Badge>
+                      <InlineSelect
+                        ariaLabel="Invoice status"
+                        value={invoice.status}
+                        options={[
+                          { value: "draft", label: "Draft", className: "bg-gray-100 text-gray-700 border border-gray-200" },
+                          { value: "sent", label: "Sent", className: "bg-blue-50 text-blue-700 border border-blue-200" },
+                          { value: "paid", label: "Paid", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+                          { value: "overdue", label: "Overdue", className: "bg-red-50 text-red-700 border border-red-200" },
+                        ]}
+                        onChange={async (next) => {
+                          const res = await fetch(`/api/invoices/${invoice.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: next }),
+                          });
+                          if (!res.ok) throw new Error("Failed to update status");
+                          setInvoices((prev) =>
+                            prev.map((inv) =>
+                              inv.id === invoice.id
+                                ? { ...inv, status: next }
+                                : inv
+                            )
+                          );
+                          toast.success("Status updated");
+                        }}
+                      />
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">£{formatPrice(invoice.totalAmount)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{formatDate(invoice.dueDate)}</td>

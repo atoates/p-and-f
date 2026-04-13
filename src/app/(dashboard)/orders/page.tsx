@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { InlineSelect } from "@/components/ui/inline-select";
 import { Plus, Edit2, Trash2, ExternalLink, Loader2, Search, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { OrderModal } from "@/components/orders/order-modal";
@@ -83,18 +83,7 @@ export default function OrdersPage() {
     fetchOrders();
   }, []);
 
-  // Keyed by the actual `order_status` pgEnum values in schema.ts --
-  // draft, quote, confirmed, cancelled, completed. An earlier version
-  // of this map referenced "pending", which never existed in the
-  // enum, so the branch was dead and `quote` orders rendered with
-  // the default grey. Fixed in #17 of Process-Flow-Review-2026-04-11.md.
-  const statusColors: Record<OrderStatus, "primary" | "success" | "warning" | "danger" | "secondary"> = {
-    draft: "secondary",
-    quote: "warning",
-    confirmed: "success",
-    completed: "primary",
-    cancelled: "danger",
-  };
+  // Status pill styling is now handled inline via InlineSelect options.
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
@@ -154,6 +143,31 @@ export default function OrdersPage() {
       console.error("Error saving order:", err);
       throw err;
     }
+  };
+
+  // Inline status update -- fetch the full order then PUT it back with
+  // the new status. The PUT handler recomputes totals from items, so
+  // we preserve items and totalPrice from the server's current state.
+  const handleStatusUpdate = async (order: Order, next: OrderStatus) => {
+    const res = await fetch(`/api/orders/${order.id}`);
+    if (!res.ok) throw new Error("Failed to load order");
+    const full = await res.json();
+    const put = await fetch(`/api/orders/${order.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        enquiryId: full.enquiryId,
+        status: next,
+        version: full.version ?? 1,
+        totalPrice: full.totalPrice,
+        items: full.items,
+      }),
+    });
+    if (!put.ok) throw new Error("Failed to update status");
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, status: next } : o))
+    );
+    toast.success("Status updated");
   };
 
   const handleDeleteOrder = async (id: string) => {
@@ -404,9 +418,20 @@ export default function OrdersPage() {
                         : "-"}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <Badge variant={statusColors[order.status as keyof typeof statusColors]}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </Badge>
+                      <InlineSelect
+                        ariaLabel="Order status"
+                        value={order.status}
+                        options={[
+                          { value: "draft", label: "Draft", className: "bg-gray-100 text-gray-700 border border-gray-200" },
+                          { value: "quote", label: "Quote", className: "bg-amber-50 text-amber-700 border border-amber-200" },
+                          { value: "confirmed", label: "Confirmed", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+                          { value: "completed", label: "Completed", className: "bg-[#E8EFE5] text-[#1B4332] border border-[#1B4332]/20" },
+                          { value: "cancelled", label: "Cancelled", className: "bg-red-50 text-red-700 border border-red-200" },
+                        ]}
+                        onChange={async (next) => {
+                          await handleStatusUpdate(order, next as OrderStatus);
+                        }}
+                      />
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {order.version}

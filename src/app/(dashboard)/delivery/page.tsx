@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { InlineSelect } from "@/components/ui/inline-select";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Pencil, Plus, Trash2, Loader2, Map, Calculator, Search, ChevronUp, ChevronDown } from "lucide-react";
@@ -91,16 +92,6 @@ const statusOptions = [
   { value: "dispatched", label: "Dispatched" },
   { value: "delivered", label: "Delivered" },
 ];
-
-const statusColors: Record<
-  string,
-  "primary" | "success" | "warning" | "danger" | "secondary"
-> = {
-  pending: "warning",
-  ready: "primary",
-  dispatched: "primary",
-  delivered: "success",
-};
 
 function formatDate(dateString?: string | null) {
   if (!dateString) return "-";
@@ -700,21 +691,36 @@ export default function DeliveryPage() {
                         {driverLabel(team, schedule.driverId)}
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <Badge
-                          variant={
-                            statusColors[
-                              schedule.status as keyof typeof statusColors
-                            ]
-                          }
-                        >
-                          {schedule.status
-                            .split("_")
-                            .map(
-                              (word) =>
-                                word.charAt(0).toUpperCase() + word.slice(1)
-                            )
-                            .join(" ")}
-                        </Badge>
+                        <InlineSelect
+                          ariaLabel="Delivery status"
+                          value={schedule.status}
+                          options={[
+                            { value: "pending", label: "Pending", className: "bg-amber-50 text-amber-700 border border-amber-200" },
+                            { value: "ready", label: "Ready", className: "bg-blue-50 text-blue-700 border border-blue-200" },
+                            { value: "dispatched", label: "Dispatched", className: "bg-[#E8EFE5] text-[#1B4332] border border-[#1B4332]/20" },
+                            { value: "delivered", label: "Delivered", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+                          ]}
+                          onChange={async (next) => {
+                            const res = await fetch(
+                              `/api/delivery/${schedule.id}`,
+                              {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ status: next }),
+                              }
+                            );
+                            if (!res.ok)
+                              throw new Error("Failed to update status");
+                            setSchedules((prev) =>
+                              prev.map((s) =>
+                                s.id === schedule.id
+                                  ? { ...s, status: next }
+                                  : s
+                              )
+                            );
+                            toast.success("Status updated");
+                          }}
+                        />
                       </td>
                       <td className="px-6 py-4 text-sm text-right">
                         <div className="flex items-center justify-end gap-2">
