@@ -18,7 +18,13 @@ export async function GET(request: NextRequest) {
     let query = db.query.contacts.findMany({
       where: and(
         eq(contacts.companyId, ctx.companyId),
-        type ? eq(contacts.type, type as "customer" | "supplier" | "both") : undefined,
+        type
+          ? type === "customer"
+            ? or(eq(contacts.type, "customer"), eq(contacts.type, "both"))
+            : type === "supplier"
+              ? or(eq(contacts.type, "supplier"), eq(contacts.type, "both"))
+              : eq(contacts.type, type as "customer" | "supplier" | "both")
+          : undefined,
         search
           ? or(
               ilike(contacts.firstName, `%${search}%`),

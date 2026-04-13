@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useState, useEffect } from "react";
+import React, { useId, useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,24 +167,46 @@ export function EnquiryModal({
   const [contacts, setContacts] = useState<ContactOption[]>([]);
   const [contactSearch, setContactSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [highlightedIdx, setHighlightedIdx] = useState(-1);
   const [selectedContact, setSelectedContact] = useState<ContactOption | null>(
     null
   );
   const [formData, setFormData] = useState<Partial<Enquiry>>({ ...emptyForm });
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch contacts for the selector
+  // Fetch contacts for the selector (include type=both since they are also customers)
   useEffect(() => {
     if (!isOpen) return;
     const fetchContacts = async () => {
       try {
-        const res = await fetch("/api/contacts?type=customer");
-        if (res.ok) setContacts(await res.json());
+        const res = await fetch("/api/contacts");
+        if (res.ok) {
+          const all: ContactOption[] = await res.json();
+          setContacts(all);
+        }
       } catch {
         // Manual entry fallback
       }
     };
     fetchContacts();
   }, [isOpen]);
+
+  // Click-outside handler for the dropdown
+  useEffect(() => {
+    if (!showContactDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowContactDropdown(false);
+        setHighlightedIdx(-1);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showContactDropdown]);
 
   useEffect(() => {
     if (enquiry) {
@@ -245,21 +267,25 @@ export function EnquiryModal({
     }));
   };
 
-  const handleSelectContact = (contact: ContactOption) => {
-    setSelectedContact(contact);
-    const name = [contact.firstName, contact.lastName]
-      .filter(Boolean)
-      .join(" ");
-    setFormData((prev) => ({
-      ...prev,
-      contactId: contact.id,
-      clientName: name,
-      clientEmail: contact.email || "",
-      clientPhone: contact.phone || "",
-    }));
-    setShowContactDropdown(false);
-    setContactSearch("");
-  };
+  const handleSelectContact = useCallback(
+    (contact: ContactOption) => {
+      setSelectedContact(contact);
+      const name = [contact.firstName, contact.lastName]
+        .filter(Boolean)
+        .join(" ");
+      setFormData((prev) => ({
+        ...prev,
+        contactId: contact.id,
+        clientName: name,
+        clientEmail: contact.email || "",
+        clientPhone: contact.phone || "",
+      }));
+      setShowContactDropdown(false);
+      setContactSearch("");
+      setHighlightedIdx(-1);
+    },
+    []
+  );
 
   const handleClearContact = () => {
     setSelectedContact(null);
@@ -270,6 +296,8 @@ export function EnquiryModal({
       clientEmail: "",
       clientPhone: "",
     }));
+    // Re-focus search after clearing
+    setTimeout(() => searchInputRef.current?.focus(), 0);
   };
 
   const filteredContacts = contactSearch
@@ -281,6 +309,36 @@ export function EnquiryModal({
         return full.includes(contactSearch.toLowerCase());
       })
     : contacts;
+
+  const visibleContacts = filteredContacts.slice(0, 10);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (!showContactDropdown) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setHighlightedIdx((prev) =>
+          prev < visibleContacts.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightedIdx((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (highlightedIdx >= 0 && highlightedIdx < visibleContacts.length) {
+          handleSelectContact(visibleContacts[highlightedIdx]);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        setShowContactDropdown(false);
+        setHighlightedIdx(-1);
+        break;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -462,34 +520,52 @@ export function EnquiryModal({
                 </div>
               </div>
             ) : (
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <div className="relative">
                   <Search
                     size={16}
                     className="absolute left-3 top-3 text-gray-400"
                   />
                   <input
+                    ref={searchInputRef}
                     type="text"
-                    placeholder="Search contacts..."
+                    placeholder="Search contacts or type a name..."
                     value={contactSearch}
                     onChange={(e) => {
                       setContactSearch(e.target.value);
                       setShowContactDropdown(true);
+                      setHighlightedIdx(-1);
                     }}
                     onFocus={() => setShowContactDropdown(true)}
+                    onKeyDown={handleSearchKeyDown}
+                    role="combobox"
+                    aria-expanded={showContactDropdown}
+                    aria-autocomplete="list"
+                    aria-controls="contact-listbox"
                     className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] text-sm"
                   />
                 </div>
 
                 {showContactDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {filteredContacts.length > 0 ? (
-                      filteredContacts.slice(0, 10).map((c) => (
+                  <div
+                    id="contact-listbox"
+                    role="listbox"
+                    className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                  >
+                    {visibleContacts.length > 0 ? (
+                      visibleContacts.map((c, idx) => (
                         <button
                           key={c.id}
                           type="button"
-                          className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                          role="option"
+                          aria-selected={idx === highlightedIdx}
+                          className={`w-full text-left px-4 py-2.5 transition-colors border-b border-gray-100 last:border-b-0 ${
+                            idx === highlightedIdx
+                              ? "bg-sage-50"
+                              : "hover:bg-gray-50"
+                          }`}
                           onClick={() => handleSelectContact(c)}
+                          onMouseEnter={() => setHighlightedIdx(idx)}
                         >
                           <p className="text-sm font-medium text-gray-900">
                             {[c.firstName, c.lastName]
@@ -503,6 +579,10 @@ export function EnquiryModal({
                           </p>
                         </button>
                       ))
+                    ) : contactSearch.length > 0 ? (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        No contacts match &ldquo;{contactSearch}&rdquo;
+                      </div>
                     ) : (
                       <div className="px-4 py-3 text-sm text-gray-500 text-center">
                         No contacts found
