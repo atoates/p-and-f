@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapPin, Loader2 } from "lucide-react";
+import {
+  loadGoogleMaps,
+  getGoogleMapsApiKey,
+  onGoogleMapsAuthFailure,
+} from "@/lib/google-maps-loader";
 
 interface DeliveryPin {
   id: string;
@@ -33,57 +38,34 @@ export function DeliveryMap({ deliveries }: DeliveryMapProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+  const apiKey = getGoogleMapsApiKey();
 
-  // Load the Google Maps script once
-  const loadScript = useCallback((): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (typeof google !== "undefined" && google.maps) {
-        resolve();
-        return;
-      }
-
-      // Check if script is already loading
-      const existing = document.querySelector(
-        'script[src*="maps.googleapis.com"]'
-      );
-      if (existing) {
-        existing.addEventListener("load", () => resolve());
-        existing.addEventListener("error", () =>
-          reject(new Error("Failed to load Google Maps"))
-        );
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geocoding`;
-      script.async = true;
-      script.defer = true;
-      script.addEventListener("load", () => resolve());
-      script.addEventListener("error", () =>
-        reject(new Error("Failed to load Google Maps"))
-      );
-      document.head.appendChild(script);
+  // Subscribe to auth failures from the shared loader so that a bad
+  // API key / disabled Places API surfaces a useful message instead of
+  // the grey "Sorry! Something went wrong" overlay.
+  useEffect(() => {
+    return onGoogleMapsAuthFailure((msg) => {
+      setError(msg);
+      setLoading(false);
     });
-  }, [apiKey]);
+  }, []);
 
   // Geocode an address and return lat/lng
-  const geocode = useCallback(
-    async (address: string): Promise<{ lat: number; lng: number } | null> => {
-      try {
-        const geocoder = new google.maps.Geocoder();
-        const result = await geocoder.geocode({ address });
-        if (result.results.length > 0) {
-          const loc = result.results[0].geometry.location;
-          return { lat: loc.lat(), lng: loc.lng() };
-        }
-        return null;
-      } catch {
-        return null;
+  const geocode = async (
+    address: string
+  ): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const geocoder = new google.maps.Geocoder();
+      const result = await geocoder.geocode({ address });
+      if (result.results.length > 0) {
+        const loc = result.results[0].geometry.location;
+        return { lat: loc.lat(), lng: loc.lng() };
       }
-    },
-    []
-  );
+      return null;
+    } catch {
+      return null;
+    }
+  };
 
   // Format the status for display
   const formatStatus = (status: string) =>
@@ -122,7 +104,7 @@ export function DeliveryMap({ deliveries }: DeliveryMapProps) {
 
     const init = async () => {
       try {
-        await loadScript();
+        await loadGoogleMaps();
         if (cancelled) return;
 
         // Initialise map centred on the UK
@@ -285,7 +267,8 @@ export function DeliveryMap({ deliveries }: DeliveryMapProps) {
     return () => {
       cancelled = true;
     };
-  }, [deliveries, apiKey, loadScript, geocode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveries, apiKey]);
 
   if (!apiKey) {
     return null;

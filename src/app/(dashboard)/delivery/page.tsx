@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { InlineSelect } from "@/components/ui/inline-select";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Select } from "@/components/ui/select";
 import { Pencil, Plus, Trash2, Loader2, Map, Calculator, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { Can } from "@/components/auth/can";
@@ -56,6 +57,8 @@ interface Order {
   id: string;
   enquiry?: {
     clientName: string;
+    venueA?: string | null;
+    venueB?: string | null;
   };
 }
 
@@ -265,6 +268,29 @@ export default function DeliveryPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // When an order is chosen, pre-fill the delivery address from the
+  // linked enquiry's venue (venueA is the ceremony/primary address,
+  // venueB the reception/secondary). We only auto-fill if the user
+  // hasn't already typed an address, so we never clobber manual input.
+  const handleOrderSelect = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const orderId = e.target.value;
+    setFormData((prev) => {
+      const order = orders.find((o) => o.id === orderId);
+      const fromOrder =
+        order?.enquiry?.venueA || order?.enquiry?.venueB || "";
+      return {
+        ...prev,
+        orderId,
+        deliveryAddress:
+          prev.deliveryAddress && prev.deliveryAddress.trim() !== ""
+            ? prev.deliveryAddress
+            : fromOrder,
+      };
+    });
   };
 
   // When a saved venue is chosen, auto-fill the address field so
@@ -788,7 +814,7 @@ export default function DeliveryPage() {
                   label="Order"
                   name="orderId"
                   value={formData.orderId}
-                  onChange={handleFormChange}
+                  onChange={handleOrderSelect}
                   options={[
                     {
                       value: "",
@@ -851,15 +877,25 @@ export default function DeliveryPage() {
                   </select>
                 </div>
 
-                <Input
-                  label="Delivery Address"
-                  type="text"
-                  name="deliveryAddress"
-                  value={formData.deliveryAddress}
-                  onChange={handleFormChange}
-                  placeholder="Enter delivery address"
-                  required
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Delivery Address
+                  </label>
+                  <AddressAutocomplete
+                    value={formData.deliveryAddress}
+                    onChange={(v) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deliveryAddress: v,
+                      }))
+                    }
+                    placeholder="Start typing a UK address..."
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Autocompletes UK addresses. Pre-filled from the linked order&rsquo;s venue when you pick an order.
+                  </p>
+                </div>
 
                 <Select
                   label="Driver"

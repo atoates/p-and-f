@@ -107,6 +107,38 @@ declare namespace google.maps {
       handler: () => void
     ): MapsEventListener;
     function removeListener(listener: MapsEventListener): void;
+    function clearInstanceListeners(instance: object): void;
+  }
+
+  namespace places {
+    class Autocomplete {
+      constructor(
+        inputField: HTMLInputElement,
+        opts?: AutocompleteOptions
+      );
+      addListener(event: string, handler: () => void): MapsEventListener;
+      getPlace(): PlaceResult;
+    }
+
+    interface AutocompleteOptions {
+      fields?: string[];
+      componentRestrictions?: { country: string | string[] };
+      types?: string[];
+      bounds?: LatLngBounds;
+      strictBounds?: boolean;
+    }
+
+    interface PlaceResult {
+      formatted_address?: string;
+      geometry?: {
+        location?: {
+          lat(): number;
+          lng(): number;
+        };
+      };
+      name?: string;
+      place_id?: string;
+    }
   }
 
   interface MapsEventListener {

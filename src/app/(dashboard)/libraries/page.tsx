@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X, Upload, Package, Trash2, ChevronDown, ChevronUp, Search, Image as ImageIcon } from "lucide-react";
+import { Plus, X, Upload, Package, Trash2, ChevronDown, ChevronUp, Search, Image as ImageIcon, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProductImage, ProductThumbnail } from "@/components/ui/product-image";
 import { Can } from "@/components/auth/can";
@@ -325,6 +325,68 @@ export default function LibrariesPage() {
     }
   };
 
+  const [generatingImages, setGeneratingImages] = useState(false);
+
+  const handleGenerateMissingImages = async () => {
+    const missingCount = products.filter((p) => !p.imageUrl).length;
+    if (missingCount === 0) {
+      toast("All products already have images");
+      return;
+    }
+    if (
+      !confirm(
+        `Generate AI stock images for ${missingCount} product${missingCount === 1 ? "" : "s"}? This may take a minute or two.`
+      )
+    ) {
+      return;
+    }
+    setGeneratingImages(true);
+    const toastId = toast.loading(
+      `Generating images for ${missingCount} product${missingCount === 1 ? "" : "s"}...`
+    );
+    try {
+      const res = await fetch("/api/products/generate-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ missingOnly: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Image generation failed");
+      }
+      const updated: Product[] = data.updated ?? [];
+      const errors: Array<{ name: string; message: string }> = data.errors ?? [];
+
+      if (updated.length > 0) {
+        setProducts((prev) =>
+          prev.map((p) => {
+            const u = updated.find((x) => x.id === p.id);
+            return u ? { ...p, imageUrl: u.imageUrl } : p;
+          })
+        );
+      }
+
+      if (errors.length === 0) {
+        toast.success(
+          `Generated ${updated.length} image${updated.length === 1 ? "" : "s"}`,
+          { id: toastId }
+        );
+      } else {
+        toast.error(
+          `Generated ${updated.length}, ${errors.length} failed. First error: ${errors[0]?.message ?? "unknown"}`,
+          { id: toastId, duration: 8000 }
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to generate images",
+        { id: toastId, duration: 8000 }
+      );
+    } finally {
+      setGeneratingImages(false);
+    }
+  };
+
   const closeImportModal = () => {
     setShowImportModal(false);
     setImportFile(null);
@@ -582,6 +644,20 @@ export default function LibrariesPage() {
           <div className="flex gap-3">
             {activeTab === "products" && (
               <>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleGenerateMissingImages}
+                  disabled={generatingImages}
+                  title="Generate AI stock images for products that don't have one yet"
+                >
+                  {generatingImages ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                  {generatingImages ? "Generating..." : "Generate images"}
+                </Button>
                 <Button
                   variant="outline"
                   type="button"
