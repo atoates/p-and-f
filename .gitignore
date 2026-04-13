@@ -31,8 +31,8 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# Database
-drizzle/*.sql
+# Database (local snapshots only; migration SQL is committed)
+drizzle/meta/*_snapshot.json
 
 # IDE
 .vscode/

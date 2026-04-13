@@ -8,6 +8,13 @@
       "when": 1775948830809,
       "tag": "0000_productive_angel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1744569600000,
+      "tag": "0001_add_contacts_bundles",
+      "breakpoints": true
     }
   ]
 }

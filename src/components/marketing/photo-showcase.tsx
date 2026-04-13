@@ -32,7 +32,7 @@ const photos = [
     priority: false,
   },
   {
-    src: "https://images.unsplash.com/photo-1471696035578-3d8c78d99571?w=400&q=80",
+    src: "https://images.unsplash.com/photo-1457089328109-e5d9bd499191?w=400&q=80",
     alt: "Wedding ceremony aisle lined with flowers",
     className: "col-span-1 row-span-1",
     priority: false,

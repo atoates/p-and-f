@@ -148,7 +148,7 @@ export default function Home() {
               {/* Photo accent */}
               <div className="absolute -right-4 -bottom-4 w-48 h-48 rounded-2xl overflow-hidden opacity-20 group-hover:opacity-30 transition-opacity duration-500 rotate-6">
                 <Image
-                  src="https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=300&q=70"
+                  src="https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=300&q=70"
                   alt=""
                   fill
                   sizes="200px"
