@@ -4,7 +4,7 @@ import React, { useId, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Trash2, Plus } from "lucide-react";
+import { X, Trash2, Plus, ChevronDown, ChevronUp, Package } from "lucide-react";
 import {
   ProductAutocomplete,
   type Bundle,
@@ -25,6 +25,12 @@ interface OrderItem {
   baseCost?: string;
   unitPrice: string;
   totalPrice: string;
+  // Bundle grouping -- present when this item belongs to a bundle.
+  // baseQuantity is the quantity from the bundle definition so that
+  // changing the bundle multiplier can scale all items proportionally.
+  bundleId?: string;
+  bundleName?: string;
+  baseQuantity?: number;
 }
 
 interface PricingRulesShape {
@@ -103,10 +109,164 @@ function deriveUnitPrice(
   return Math.round(baseCost * markup * 100) / 100;
 }
 
+/** Reusable row for a single line item (standalone or inside a bundle). */
+function LineItemRow({
+  item,
+  index,
+  products,
+  bundles,
+  onItemChange,
+  onProductSelect,
+  onBundleSelect,
+  onRemove,
+  compact,
+}: {
+  item: OrderItem;
+  index: number;
+  products: Product[];
+  bundles: Bundle[];
+  onItemChange: (index: number, field: string, value: string | number) => void;
+  onProductSelect: (index: number, product: Product) => void;
+  onBundleSelect: (bundle: Bundle) => void;
+  onRemove: (index: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={
+        compact
+          ? "space-y-3"
+          : "border border-gray-200 rounded-lg p-4 space-y-3"
+      }
+    >
+      <div className="grid grid-cols-1 md:grid-cols-9 gap-3">
+        <div className="md:col-span-3">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <ProductAutocomplete
+            value={item.description}
+            products={products}
+            bundles={bundles}
+            onChange={(val) => onItemChange(index, "description", val)}
+            onSelect={(product) => onProductSelect(index, product)}
+            onSelectBundle={onBundleSelect}
+            placeholder="Search products or type freely..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Category
+          </label>
+          <select
+            value={item.category || ""}
+            onChange={(e) =>
+              onItemChange(index, "category", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
+          >
+            <option value="">Select</option>
+            {CATEGORY_OPTIONS.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Qty
+          </label>
+          <input
+            type="number"
+            value={item.quantity}
+            onChange={(e) =>
+              onItemChange(
+                index,
+                "quantity",
+                e.target.value ? parseFloat(e.target.value) : 0
+              )
+            }
+            min="1"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
+          />
+        </div>
+
+        <div>
+          <label
+            className="block text-xs font-medium text-gray-700 mb-1"
+            title="What you pay for one unit. Sell price is derived from this."
+          >
+            Cost
+          </label>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">£</span>
+            <input
+              type="number"
+              value={item.baseCost || ""}
+              onChange={(e) =>
+                onItemChange(index, "baseCost", e.target.value)
+              }
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Unit Price
+          </label>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">£</span>
+            <input
+              type="number"
+              value={item.unitPrice}
+              onChange={(e) =>
+                onItemChange(
+                  index,
+                  "unitPrice",
+                  e.target.value ? parseFloat(e.target.value) : 0
+                )
+              }
+              step="0.01"
+              min="0"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Total
+            </label>
+            <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-medium text-gray-900">
+              £{parseFloat(item.totalPrice).toFixed(2)}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onRemove(index)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) {
   const titleId = useId();
   const { dialogRef } = useModalA11y(isOpen, onClose);
   const [loading, setLoading] = useState(false);
+  const [expandedBundles, setExpandedBundles] = useState<Set<string>>(new Set());
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [enquiriesLoading, setEnquiriesLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
@@ -301,6 +461,8 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
   };
 
   const handleBundleSelect = (bundle: Bundle) => {
+    const bundleId = `bundle-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
     const newItems: OrderItem[] = bundle.items.map((bi) => {
       // Use the linked product's wholesale price as base cost when available
       const prod = bi.product;
@@ -323,8 +485,11 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
         category,
         baseCost: baseCost > 0 ? baseCost.toFixed(2) : "",
         quantity,
+        baseQuantity: quantity,
         unitPrice: unitPrice.toFixed(2),
         totalPrice: (quantity * unitPrice).toFixed(2),
+        bundleId,
+        bundleName: bundle.name,
       };
     });
 
@@ -334,6 +499,32 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
     }));
 
     toast.success(`Added ${bundle.name} (${newItems.length} items)`);
+  };
+
+  // Change the multiplier for every item in a bundle. The base
+  // quantity (from the bundle definition) is scaled by the new
+  // multiplier so that "2x" a bundle with 3 roses gives 6 roses.
+  const handleBundleQuantityChange = (bundleId: string, multiplier: number) => {
+    const items = [...(formData.items || [])].map((item) => {
+      if (item.bundleId !== bundleId) return item;
+      const baseQty = item.baseQuantity || item.quantity;
+      const newQty = Math.max(1, Math.round(baseQty * multiplier));
+      const unitPrice = parseFloat(item.unitPrice) || 0;
+      return {
+        ...item,
+        quantity: newQty,
+        totalPrice: (newQty * unitPrice).toFixed(2),
+      };
+    });
+    setFormData((prev) => ({ ...prev, items }));
+  };
+
+  // Remove all items belonging to a bundle
+  const handleRemoveBundle = (bundleId: string) => {
+    const items = (formData.items || []).filter(
+      (item) => item.bundleId !== bundleId
+    );
+    setFormData((prev) => ({ ...prev, items }));
   };
 
   const handleRemoveItem = (index: number) => {
@@ -481,146 +672,157 @@ export function OrderModal({ isOpen, order, onClose, onSave }: OrderModalProps) 
             </div>
 
             <div className="space-y-4">
-              {(formData.items || []).map((item, index) => (
-                <div
-                  key={item.id}
-                  className="border border-gray-200 rounded-lg p-4 space-y-3"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-9 gap-3">
-                    <div className="md:col-span-3">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Description
-                      </label>
-                      <ProductAutocomplete
-                        value={item.description}
+              {(() => {
+                const items = formData.items || [];
+                // Group items: standalone items render individually,
+                // bundle items are collected under their bundleId.
+                const rendered: React.ReactNode[] = [];
+                const seenBundles = new Set<string>();
+
+                items.forEach((item, index) => {
+                  // Standalone item (no bundle)
+                  if (!item.bundleId) {
+                    rendered.push(
+                      <LineItemRow
+                        key={item.id}
+                        item={item}
+                        index={index}
                         products={products}
                         bundles={bundles}
-                        onChange={(val) =>
-                          handleItemChange(index, "description", val)
-                        }
-                        onSelect={(product) =>
-                          handleProductSelect(index, product)
-                        }
-                        onSelectBundle={handleBundleSelect}
-                        placeholder="Search products or type freely..."
+                        onItemChange={handleItemChange}
+                        onProductSelect={handleProductSelect}
+                        onBundleSelect={handleBundleSelect}
+                        onRemove={handleRemoveItem}
                       />
-                    </div>
+                    );
+                    return;
+                  }
 
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Category
-                      </label>
-                      <select
-                        value={item.category || ""}
-                        onChange={(e) =>
-                          handleItemChange(index, "category", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
-                      >
-                        <option value="">Select</option>
-                        {CATEGORY_OPTIONS.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  // Bundle group -- render once per bundleId
+                  if (seenBundles.has(item.bundleId)) return;
+                  seenBundles.add(item.bundleId);
 
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Qty
-                      </label>
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            "quantity",
-                            e.target.value ? parseFloat(e.target.value) : 0
-                          )
-                        }
-                        min="1"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
-                      />
-                    </div>
+                  const bundleItems = items
+                    .map((bi, i) => ({ item: bi, index: i }))
+                    .filter((bi) => bi.item.bundleId === item.bundleId);
 
-                    <div>
-                      <label
-                        className="block text-xs font-medium text-gray-700 mb-1"
-                        title="What you pay for one unit. Sell price is derived from this."
-                      >
-                        Cost
-                      </label>
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm text-gray-500">£</span>
-                        <input
-                          type="number"
-                          value={item.baseCost || ""}
-                          onChange={(e) =>
-                            handleItemChange(
-                              index,
-                              "baseCost",
-                              e.target.value
-                            )
+                  const bundleTotal = bundleItems.reduce(
+                    (sum, bi) => sum + parseFloat(bi.item.totalPrice || "0"),
+                    0
+                  );
+
+                  // Work out the current multiplier from the first
+                  // item's quantity vs its base quantity.
+                  const firstItem = bundleItems[0].item;
+                  const multiplier =
+                    firstItem.baseQuantity && firstItem.baseQuantity > 0
+                      ? firstItem.quantity / firstItem.baseQuantity
+                      : 1;
+
+                  const isExpanded = expandedBundles.has(item.bundleId);
+
+                  rendered.push(
+                    <div
+                      key={item.bundleId}
+                      className="border border-[#1B4332] border-opacity-30 rounded-lg overflow-hidden"
+                    >
+                      {/* Bundle header */}
+                      <div className="bg-sage-50 px-4 py-3 flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedBundles((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(item.bundleId!)) {
+                                next.delete(item.bundleId!);
+                              } else {
+                                next.add(item.bundleId!);
+                              }
+                              return next;
+                            })
                           }
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Unit Price
-                      </label>
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm text-gray-500">£</span>
-                        <input
-                          type="number"
-                          value={item.unitPrice}
-                          onChange={(e) =>
-                            handleItemChange(
-                              index,
-                              "unitPrice",
-                              e.target.value ? parseFloat(e.target.value) : 0
-                            )
-                          }
-                          step="0.01"
-                          min="0"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-colors text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-end gap-2">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Total
-                        </label>
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-medium text-gray-900">
-                          £{parseFloat(item.totalPrice).toFixed(2)}
+                          className="text-[#1B4332] hover:text-[#143826] transition-colors"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp size={18} />
+                          ) : (
+                            <ChevronDown size={18} />
+                          )}
+                        </button>
+                        <Package size={16} className="text-[#1B4332]" />
+                        <span className="text-sm font-semibold text-gray-900 flex-1">
+                          {item.bundleName || "Bundle"}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <label className="text-xs text-gray-600">Qty</label>
+                            <input
+                              type="number"
+                              value={multiplier}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (val > 0 && item.bundleId) {
+                                  handleBundleQuantityChange(
+                                    item.bundleId,
+                                    val
+                                  );
+                                }
+                              }}
+                              min="1"
+                              step="1"
+                              className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-gray-500">
+                            {bundleItems.length} items
+                          </span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            £{bundleTotal.toFixed(2)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              item.bundleId &&
+                              handleRemoveBundle(item.bundleId)
+                            }
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
 
-              {(formData.items || []).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No items added yet. Click "Add Item" to get started.</p>
-                </div>
-              )}
+                      {/* Collapsible bundle items */}
+                      {isExpanded && (
+                        <div className="p-4 space-y-3 border-t border-gray-200">
+                          {bundleItems.map(({ item: bi, index: idx }) => (
+                            <LineItemRow
+                              key={bi.id}
+                              item={bi}
+                              index={idx}
+                              products={products}
+                              bundles={bundles}
+                              onItemChange={handleItemChange}
+                              onProductSelect={handleProductSelect}
+                              onBundleSelect={handleBundleSelect}
+                              onRemove={handleRemoveItem}
+                              compact
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+
+                return rendered.length > 0 ? (
+                  rendered
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No items added yet. Click &ldquo;Add Item&rdquo; to get started.</p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
