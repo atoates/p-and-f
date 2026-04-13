@@ -62,6 +62,11 @@ export const productCategoryEnum = pgEnum("product_category", [
   "ribbon",
   "accessory",
 ]);
+export const contactTypeEnum = pgEnum("contact_type", [
+  "customer",
+  "supplier",
+  "both",
+]);
 export const wholesaleStatusEnum = pgEnum("wholesale_status", [
   "pending",
   "confirmed",
@@ -163,6 +168,42 @@ export const addresses = pgTable("addresses", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ─── Contacts / Address Book ───────────────────────────────────
+export const contacts = pgTable("contacts", {
+  id: text("id").primaryKey(),
+  companyId: text("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  type: contactTypeEnum("type").notNull().default("customer"),
+  firstName: varchar("first_name", { length: 255 }).notNull(),
+  lastName: varchar("last_name", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 30 }),
+  mobile: varchar("mobile", { length: 30 }),
+  companyName: varchar("company_name", { length: 255 }),
+  jobTitle: varchar("job_title", { length: 255 }),
+  website: varchar("website", { length: 500 }),
+  addressLine1: varchar("address_line_1", { length: 255 }),
+  addressLine2: varchar("address_line_2", { length: 255 }),
+  city: varchar("city", { length: 100 }),
+  county: varchar("county", { length: 100 }),
+  postcode: varchar("postcode", { length: 20 }),
+  country: varchar("country", { length: 100 }).default("United Kingdom"),
+  paymentTerms: varchar("payment_terms", { length: 100 }),
+  vatNumber: varchar("vat_number", { length: 50 }),
+  accountRef: varchar("account_ref", { length: 100 }),
+  tags: text("tags"),
+  notes: text("notes"),
+  createdBy: text("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedBy: text("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const enquiries = pgTable(
   "enquiries",
   {
@@ -170,6 +211,9 @@ export const enquiries = pgTable(
     companyId: text("company_id")
       .notNull()
       .references(() => companies.id, { onDelete: "cascade" }),
+    contactId: text("contact_id").references(() => contacts.id, {
+      onDelete: "set null",
+    }),
     clientName: varchar("client_name", { length: 255 }).notNull(),
     clientEmail: varchar("client_email", { length: 255 }).notNull(),
     clientPhone: varchar("client_phone", { length: 20 }),
@@ -683,6 +727,7 @@ export const usersRelations = relations(users, ({ one }) => ({
 export const companiesRelations = relations(companies, ({ many, one }) => ({
   users: many(users),
   addresses: many(addresses),
+  contacts: many(contacts),
   enquiries: many(enquiries),
   orders: many(orders),
   proposals: many(proposals),
@@ -705,10 +750,22 @@ export const addressesRelations = relations(addresses, ({ one }) => ({
   }),
 }));
 
+export const contactsRelations = relations(contacts, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [contacts.companyId],
+    references: [companies.id],
+  }),
+  enquiries: many(enquiries),
+}));
+
 export const enquiriesRelations = relations(enquiries, ({ one, many }) => ({
   company: one(companies, {
     fields: [enquiries.companyId],
     references: [companies.id],
+  }),
+  contact: one(contacts, {
+    fields: [enquiries.contactId],
+    references: [contacts.id],
   }),
   orders: many(orders),
 }));

@@ -54,6 +54,7 @@ export async function PUT(
     const result = await db
       .update(enquiries)
       .set({
+        contactId: data.contactId,
         clientName: data.clientName,
         clientEmail: data.clientEmail,
         clientPhone: data.clientPhone,

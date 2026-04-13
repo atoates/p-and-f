@@ -757,6 +757,56 @@ async function seedData(client: any) {
     );
   }
 
+  // Seed contacts (customers and suppliers)
+  const contactsList = [
+    // Customers (will be linked to enquiries)
+    { firstName: "Sarah", lastName: "Johnson", email: "sarah.j@email.com", phone: "020 7946 0958", type: "customer", companyName: null, city: "London", postcode: "SW3 4LY" },
+    { firstName: "Michael", lastName: "Brown", email: "m.brown@corporate.com", phone: "020 3456 7890", type: "customer", companyName: "Brown Corp", city: "London", postcode: "E14 5AB" },
+    { firstName: "Elizabeth", lastName: "Wilson", email: "liz.wilson@yahoo.com", phone: "020 8123 4567", type: "customer", companyName: null, city: "London", postcode: "W8 5DL" },
+    { firstName: "James", lastName: "Cooper", email: "emma.cooper@hotmail.com", phone: "020 7234 5678", type: "customer", companyName: null, city: "London", postcode: "TW10 6RR" },
+    { firstName: "Alexandra", lastName: "Chen", email: "a.chen@design.com", phone: "020 7987 6543", type: "customer", companyName: "Chen Design Studio", city: "London", postcode: "SW1X 7XL", jobTitle: "Creative Director" },
+    { firstName: "Thomas", lastName: "Hayes", email: "rebecca.hayes@email.com", phone: "020 7654 3210", type: "customer", companyName: null, city: "London", postcode: "SE1 2UP" },
+    { firstName: "Priya", lastName: "Patel", email: "priya.p@gmail.com", phone: "020 8876 5432", type: "customer", companyName: null, city: "London", postcode: "W1K 1LB" },
+    { firstName: "David", lastName: "Nelson", email: "lucy.nelson@yahoo.co.uk", phone: "020 7123 9876", type: "customer", companyName: null, city: "London", postcode: "N1 0QH" },
+    { firstName: "Olivia", lastName: "Grant", email: "o.grant@events.com", phone: "020 7111 2222", type: "customer", companyName: "Grant Events", city: "London", postcode: "SW7 3HQ", jobTitle: "Event Planner" },
+    // Suppliers
+    { firstName: "Hans", lastName: "van Dijk", email: "hans@hilversum-roses.nl", phone: "+31 35 621 0000", type: "supplier", companyName: "Hilversum Roses", city: "Hilversum", postcode: "1211 AB", country: "Netherlands", paymentTerms: "14 days" },
+    { firstName: "Marie", lastName: "Leykaart", email: "orders@leykaart.com", phone: "+31 20 555 1234", type: "supplier", companyName: "Leykaart Bloemen", city: "Aalsmeer", postcode: "1431 HM", country: "Netherlands", paymentTerms: "30 days" },
+    { firstName: "Pierre", lastName: "Delbard", email: "export@delbard.fr", phone: "+33 4 71 43 0000", type: "supplier", companyName: "Delbard", city: "Malicorne", postcode: "03600", country: "France", paymentTerms: "30 days" },
+    { firstName: "James", lastName: "Whitfield", email: "james@sundries-direct.co.uk", phone: "01onal 555 9999", type: "supplier", companyName: "Sundries Direct", city: "Bristol", postcode: "BS1 3XD", paymentTerms: "7 days" },
+    { firstName: "Lucy", lastName: "Palmer", email: "lucy@ribbonworld.co.uk", phone: "020 8333 4444", type: "both", companyName: "Ribbon World", city: "London", postcode: "E1 6AN", paymentTerms: "14 days" },
+  ];
+
+  const contactIds: string[] = [];
+  for (const c of contactsList) {
+    const contactId = randomUUID();
+    contactIds.push(contactId);
+    await client.query(
+      `INSERT INTO contacts (id, company_id, type, first_name, last_name, email, phone, company_name, job_title, city, postcode, country, payment_terms, created_by, updated_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())`,
+      [
+        contactId,
+        COMPANY_ID,
+        c.type,
+        c.firstName,
+        c.lastName,
+        c.email,
+        c.phone,
+        c.companyName || null,
+        (c as any).jobTitle || null,
+        c.city || null,
+        c.postcode || null,
+        (c as any).country || "United Kingdom",
+        (c as any).paymentTerms || null,
+        ADMIN_USER_ID,
+        ADMIN_USER_ID,
+      ]
+    );
+  }
+
+  // Map from enquiry index to contact index (first 9 customers)
+  const enquiryToContact = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
   // Seed enquiries (expanded to 15)
   const enquiriesList = [
     {
@@ -937,12 +987,14 @@ async function seedData(client: any) {
     const enquiryId = randomUUID();
     enquiryIds.push(enquiryId);
     const progress = enquiryIndexesWithLiveOrder.has(i) ? "Order" : enq.progress;
+    const linkedContactId = i < enquiryToContact.length ? contactIds[enquiryToContact[i]] : null;
     await client.query(
-      `INSERT INTO enquiries (id, company_id, client_name, client_email, client_phone, event_type, event_date, venue_a, progress, notes, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())`,
+      `INSERT INTO enquiries (id, company_id, contact_id, client_name, client_email, client_phone, event_type, event_date, venue_a, progress, notes, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
       [
         enquiryId,
         COMPANY_ID,
+        linkedContactId,
         enq.clientName,
         enq.clientEmail,
         enq.clientPhone,

@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       .values({
         id: crypto.randomUUID(),
         companyId: ctx.companyId,
+        contactId: data.contactId,
         clientName: data.clientName,
         clientEmail: data.clientEmail,
         clientPhone: data.clientPhone,

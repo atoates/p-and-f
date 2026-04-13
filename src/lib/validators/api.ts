@@ -77,6 +77,7 @@ export const enquiryProgress = z.enum([
 ]);
 
 export const enquiryBodySchema = z.object({
+  contactId: optionalTrimmed(100),
   clientName: requiredTrimmed("Client name", 200),
   clientEmail: z
     .string()

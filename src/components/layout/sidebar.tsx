@@ -18,6 +18,7 @@ import {
   User,
   CreditCard,
   Library,
+  BookUser,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { featureFlags } from "@/lib/feature-flags";
@@ -32,6 +33,7 @@ const navigationItems = [
   { name: "Wholesale", href: "/wholesale", icon: Boxes },
   { name: "Production", href: "/production", icon: Wrench },
   { name: "Delivery", href: "/delivery", icon: Truck },
+  { name: "Address Book", href: "/contacts", icon: BookUser },
   { name: "Libraries", href: "/libraries", icon: Library },
 ];
 

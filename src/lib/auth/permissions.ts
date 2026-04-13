@@ -57,6 +57,11 @@ export type Permission =
   | "delivery:create"
   | "delivery:update"
   | "delivery:delete"
+  // Contacts / address book
+  | "contacts:read"
+  | "contacts:create"
+  | "contacts:update"
+  | "contacts:delete"
   // Products / libraries
   | "products:read"
   | "products:create"
@@ -117,6 +122,10 @@ const PERMISSION_MATRIX: Record<Role, readonly Permission[]> = {
     "delivery:create",
     "delivery:update",
     "delivery:delete",
+    "contacts:read",
+    "contacts:create",
+    "contacts:update",
+    "contacts:delete",
     "products:read",
     "products:create",
     "products:update",
@@ -164,6 +173,10 @@ const PERMISSION_MATRIX: Record<Role, readonly Permission[]> = {
     "delivery:create",
     "delivery:update",
     "delivery:delete",
+    "contacts:read",
+    "contacts:create",
+    "contacts:update",
+    "contacts:delete",
     "products:read",
     "products:create",
     "products:update",
@@ -202,6 +215,9 @@ const PERMISSION_MATRIX: Record<Role, readonly Permission[]> = {
     "delivery:read",
     "delivery:create",
     "delivery:update",
+    "contacts:read",
+    "contacts:create",
+    "contacts:update",
     "products:read",
     "products:create",
     "products:update",
