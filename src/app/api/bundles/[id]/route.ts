@@ -7,12 +7,12 @@ import { randomUUID } from "crypto";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const gate = await requirePermissionApi("products:update");
   if ("response" in gate) return gate.response;
   const { ctx } = gate;
-  const { id } = await params;
+  const { id } = params;
 
   try {
     const body = await request.json();
@@ -94,12 +94,12 @@ export async function PUT(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const gate = await requirePermissionApi("products:delete");
   if ("response" in gate) return gate.response;
   const { ctx } = gate;
-  const { id } = await params;
+  const { id } = params;
 
   try {
     const existing = await db.query.bundles.findFirst({

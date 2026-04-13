@@ -6,12 +6,12 @@ import { requirePermissionApi } from "@/lib/auth/permissions-api";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const gate = await requirePermissionApi("contacts:read");
   if ("response" in gate) return gate.response;
   const { ctx } = gate;
-  const { id } = await params;
+  const { id } = params;
 
   try {
     const result = await db.query.contacts.findFirst({
@@ -54,12 +54,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const gate = await requirePermissionApi("contacts:update");
   if ("response" in gate) return gate.response;
   const { ctx } = gate;
-  const { id } = await params;
+  const { id } = params;
 
   try {
     const data = await request.json();
@@ -124,12 +124,12 @@ export async function PUT(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const gate = await requirePermissionApi("contacts:delete");
   if ("response" in gate) return gate.response;
   const { ctx } = gate;
-  const { id } = await params;
+  const { id } = params;
 
   try {
     const existing = await db.query.contacts.findFirst({
