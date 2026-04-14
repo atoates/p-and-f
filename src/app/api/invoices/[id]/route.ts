@@ -5,6 +5,48 @@ import { and, eq } from "drizzle-orm";
 import { requirePermissionApi } from "@/lib/auth/permissions-api";
 import { parseJsonBody, invoicePatchSchema } from "@/lib/validators/api";
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const gate = await requirePermissionApi("invoices:read");
+  if ("response" in gate) return gate.response;
+  const { ctx } = gate;
+
+  try {
+    const invoice = await db.query.invoices.findFirst({
+      where: and(
+        eq(invoices.id, params.id),
+        eq(invoices.companyId, ctx.companyId)
+      ),
+      with: {
+        order: {
+          with: {
+            enquiry: true,
+          },
+        },
+      },
+    });
+    if (!invoice) {
+      return NextResponse.json(
+        { error: "Invoice not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(invoice);
+  } catch (error) {
+    console.error(
+      "Error fetching invoice:",
+      error instanceof Error ? error.message : "unknown"
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch invoice" },
+      { status: 500 }
+    );
+  }
+}
+
 /**
  * PATCH /api/invoices/[id]
  *
@@ -97,6 +139,66 @@ export async function PATCH(
     );
     return NextResponse.json(
       { error: "Failed to update invoice" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/invoices/[id]
+ *
+ * Only draft invoices can be deleted. Sent/paid/overdue invoices are
+ * part of the financial record and should not be removed.
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const gate = await requirePermissionApi("invoices:delete");
+  if ("response" in gate) return gate.response;
+  const { ctx } = gate;
+
+  try {
+    const existing = await db.query.invoices.findFirst({
+      where: and(
+        eq(invoices.id, params.id),
+        eq(invoices.companyId, ctx.companyId)
+      ),
+      columns: { id: true, status: true },
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Invoice not found" },
+        { status: 404 }
+      );
+    }
+
+    if (existing.status !== "draft") {
+      return NextResponse.json(
+        {
+          error: `Cannot delete an invoice with status "${existing.status}". Only draft invoices can be deleted.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    await db
+      .delete(invoices)
+      .where(
+        and(
+          eq(invoices.id, params.id),
+          eq(invoices.companyId, ctx.companyId)
+        )
+      );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(
+      "Error deleting invoice:",
+      error instanceof Error ? error.message : "unknown"
+    );
+    return NextResponse.json(
+      { error: "Failed to delete invoice" },
       { status: 500 }
     );
   }

@@ -5,9 +5,11 @@ import { and, eq } from "drizzle-orm";
 import { requirePermissionApi } from "@/lib/auth/permissions-api";
 import { parseJsonBody, venuePatchSchema } from "@/lib/validators/api";
 
-export async function PATCH(
+// PUT and PATCH both accept partial updates for backwards compatibility.
+// Existing callers may use either method.
+async function handleUpdate(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  params: { id: string }
 ) {
   const gate = await requirePermissionApi("delivery:update");
   if ("response" in gate) return gate.response;
@@ -58,6 +60,20 @@ export async function PATCH(
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return handleUpdate(request, params);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return handleUpdate(request, params);
 }
 
 export async function DELETE(

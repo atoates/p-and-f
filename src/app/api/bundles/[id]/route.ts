@@ -5,6 +5,42 @@ import { eq, and } from "drizzle-orm";
 import { requirePermissionApi } from "@/lib/auth/permissions-api";
 import { randomUUID } from "crypto";
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const gate = await requirePermissionApi("products:read");
+  if ("response" in gate) return gate.response;
+  const { ctx } = gate;
+
+  try {
+    const bundle = await db.query.bundles.findFirst({
+      where: and(
+        eq(bundles.id, params.id),
+        eq(bundles.companyId, ctx.companyId)
+      ),
+      with: { items: true },
+    });
+    if (!bundle) {
+      return NextResponse.json(
+        { error: "Bundle not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(bundle);
+  } catch (error) {
+    console.error(
+      "Error fetching bundle:",
+      error instanceof Error ? error.message : "unknown"
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch bundle" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
