@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { UkDateInput } from "@/components/ui/uk-date-input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, Eye } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import { formatUkDate } from "@/lib/format-date";
 
@@ -410,7 +411,12 @@ export default function ProductionPage() {
                       {formatUkDate(schedule.productionDate)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {schedule.order?.enquiry?.clientName || "Unknown"}
+                      <Link
+                        href={`/production/${schedule.id}`}
+                        className="text-primary-green hover:underline font-medium"
+                      >
+                        {schedule.order?.enquiry?.clientName || "Unknown"}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <Badge variant={statusColors[schedule.status]}>
@@ -430,6 +436,13 @@ export default function ProductionPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/production/${schedule.id}`}
+                          className="p-2 text-gray-600 hover:text-[#1B4332] hover:bg-gray-100 rounded"
+                          aria-label="View schedule"
+                        >
+                          <Eye size={16} />
+                        </Link>
                         <Can permission="production:update">
                           <button
                             type="button"

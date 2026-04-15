@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Package, Trash2, ChevronDown, ChevronUp, Search, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Upload, Package, Trash2, ChevronDown, ChevronUp, Search, Sparkles, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductImage } from "@/components/ui/product-image";
 import { Can } from "@/components/auth/can";
 import { CreateProductModal } from "@/components/libraries/create-product-modal";
@@ -73,6 +73,10 @@ export default function LibrariesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const PAGE_SIZE = 50;
 
   /* ---------- Bundles state ---------- */
   const [bundlesData, setBundlesData] = useState<Bundle[]>([]);
@@ -85,21 +89,35 @@ export default function LibrariesPage() {
   /*  Data fetching                                                      */
   /* ------------------------------------------------------------------ */
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/products?limit=200");
-        if (!response.ok) throw new Error("Failed to fetch products");
-        const json = await response.json();
-        setProducts(json.data ?? json);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
+  const fetchProductsPage = useCallback(async (page: number) => {
+    try {
+      setLoading(true);
+      const categoryParam = selectedCategory
+        ? `&category=${categoryMap[selectedCategory] || selectedCategory}`
+        : "";
+      const response = await fetch(
+        `/api/products?page=${page}&limit=${PAGE_SIZE}${categoryParam}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch products");
+      const json = await response.json();
+      setProducts(json.data ?? json);
+      if (json.pagination) {
+        setTotalPages(json.pagination.totalPages);
+        setTotalProducts(json.pagination.total);
+        setCurrentPage(json.pagination.page);
       }
-    };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory]);
 
+  useEffect(() => {
+    fetchProductsPage(1);
+  }, [fetchProductsPage]);
+
+  useEffect(() => {
     const fetchBundles = async () => {
       try {
         setBundlesLoading(true);
@@ -113,8 +131,6 @@ export default function LibrariesPage() {
         setBundlesLoading(false);
       }
     };
-
-    fetchProducts();
     fetchBundles();
   }, []);
 
@@ -122,10 +138,8 @@ export default function LibrariesPage() {
   /*  Products helpers                                                   */
   /* ------------------------------------------------------------------ */
 
-  const filteredProducts =
-    selectedCategory && selectedCategory !== "All"
-      ? products.filter((p) => p.category === categoryMap[selectedCategory])
-      : products;
+  // Category filtering is now server-side via the API's category param
+  const filteredProducts = products;
 
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
@@ -152,16 +166,8 @@ export default function LibrariesPage() {
   };
 
   const refreshProducts = useCallback(async () => {
-    try {
-      const response = await fetch("/api/products?limit=200");
-      if (response.ok) {
-        const json = await response.json();
-        setProducts(json.data ?? json);
-      }
-    } catch {
-      // silent refresh
-    }
-  }, []);
+    await fetchProductsPage(currentPage);
+  }, [fetchProductsPage, currentPage]);
 
   const [generatingImages, setGeneratingImages] = useState(false);
   const [genProgress, setGenProgress] = useState<{
@@ -713,6 +719,55 @@ export default function LibrariesPage() {
               )}
             </CardBody>
           </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 px-1">
+              <p className="text-sm text-gray-500">
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}
+                {" - "}
+                {Math.min(currentPage * PAGE_SIZE, totalProducts)} of{" "}
+                {totalProducts} products
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => fetchProductsPage(currentPage - 1)}
+                  disabled={currentPage <= 1 || loading}
+                  className="p-2 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => fetchProductsPage(page)}
+                      disabled={loading}
+                      className={`min-w-[32px] h-8 rounded text-sm font-medium transition-colors ${
+                        page === currentPage
+                          ? "bg-[#1B4332] text-white"
+                          : "hover:bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+                <button
+                  type="button"
+                  onClick={() => fetchProductsPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages || loading}
+                  className="p-2 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

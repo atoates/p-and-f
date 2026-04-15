@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Eye } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import { formatUkDate } from "@/lib/format-date";
 import { wholesaleStatusColours } from "@/lib/status-colours";
@@ -329,6 +330,8 @@ export default function WholesalePage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
                     Items
                   </th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900 w-16">
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -338,7 +341,12 @@ export default function WholesalePage() {
                     className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {order.supplier}
+                      <Link
+                        href={`/wholesale/${order.id}`}
+                        className="text-primary-green hover:underline"
+                      >
+                        {order.supplier}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {order.order?.enquiry?.clientName || "Unknown"}
@@ -353,6 +361,15 @@ export default function WholesalePage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {getItemsSummary(order.items)}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        href={`/wholesale/${order.id}`}
+                        className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 transition-colors text-gray-600 hover:text-[#1B4332]"
+                        aria-label="View wholesale order"
+                      >
+                        <Eye size={16} />
+                      </Link>
                     </td>
                   </tr>
                 ))}

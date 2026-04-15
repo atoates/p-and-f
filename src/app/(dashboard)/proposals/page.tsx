@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Download, Loader2, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Download, Loader2, Search, ChevronUp, ChevronDown, Eye } from "lucide-react";
 import { Can } from "@/components/auth/can";
 import { formatUkDate } from "@/lib/format-date";
 
@@ -331,7 +332,12 @@ export default function ProposalsPage() {
                 {displayedProposals.map((proposal) => (
                   <tr key={proposal.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                      {proposal.order?.enquiry?.clientName || "Unknown"}
+                      <Link
+                        href={`/proposals/${proposal.id}`}
+                        className="text-primary-green hover:underline"
+                      >
+                        {proposal.order?.enquiry?.clientName || "Unknown"}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {proposal.orderId.slice(0, 8)}...
@@ -348,19 +354,29 @@ export default function ProposalsPage() {
                       {formatUkDate(proposal.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      <button
-                        onClick={() => handleDownload(proposal.id)}
-                        disabled={downloadingId === proposal.id}
-                        className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                        title="Download PDF"
-                        aria-label="Download proposal PDF"
-                      >
-                        {downloadingId === proposal.id ? (
-                          <Loader2 size={18} className="animate-spin" />
-                        ) : (
-                          <Download size={18} />
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/proposals/${proposal.id}`}
+                          className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 transition-colors"
+                          title="View proposal"
+                          aria-label="View proposal"
+                        >
+                          <Eye size={18} />
+                        </Link>
+                        <button
+                          onClick={() => handleDownload(proposal.id)}
+                          disabled={downloadingId === proposal.id}
+                          className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                          title="Download PDF"
+                          aria-label="Download proposal PDF"
+                        >
+                          {downloadingId === proposal.id ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Download size={18} />
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
