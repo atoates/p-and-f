@@ -5,20 +5,21 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { requirePermissionApi } from "@/lib/auth/permissions-api";
 import { z } from "zod";
 import { parseJsonBody } from "@/lib/validators/api";
+import { buildImageKey, uploadObject } from "@/lib/storage";
 
 /**
  * POST /api/products/generate-images
  *
  * Generates AI stock images for products that don't yet have one (or for
  * a specific set of product ids). Images are produced via the OpenAI
- * Images API and stored inline as `data:image/png;base64,...` URIs on
- * `products.imageUrl`, which avoids the need for an external object
- * store (Railway's filesystem is ephemeral).
+ * Images API and uploaded to R2. The public R2 URL is stored on
+ * `products.imageUrl` so the browser can load it directly from the CDN
+ * without going through this app server.
  *
  * Body:
  *   { missingOnly?: boolean, ids?: string[] }
  *
- * Requires OPENAI_API_KEY to be set.
+ * Requires OPENAI_API_KEY and R2_* to be set.
  */
 
 // Each OpenAI image call can take 10-30s. To avoid hitting platform
@@ -41,7 +42,8 @@ type Product = typeof products.$inferSelect;
 
 async function generateImage(
   apiKey: string,
-  product: Product
+  product: Product,
+  companyId: string
 ): Promise<string> {
   const parts: string[] = [
     `Professional product photograph of ${product.name}`,
@@ -80,20 +82,32 @@ async function generateImage(
   const item = json.data?.[0];
   if (!item) throw new Error("OpenAI returned no image data");
 
+  // Resolve the generated image into raw bytes. OpenAI returns either
+  // `b64_json` (inline) or `url` (short-lived). Either way we end up
+  // with a Buffer we can hand to R2.
+  let buffer: Buffer;
   if (item.b64_json) {
-    return `data:image/png;base64,${item.b64_json}`;
-  }
-  if (item.url) {
-    // Fetch and inline as base64 so the image survives without an
-    // external URL that might expire.
+    buffer = Buffer.from(item.b64_json, "base64");
+  } else if (item.url) {
     const imgResp = await fetch(item.url);
     if (!imgResp.ok) {
       throw new Error(`Failed to fetch generated image from ${item.url}`);
     }
-    const buf = Buffer.from(await imgResp.arrayBuffer());
-    return `data:image/png;base64,${buf.toString("base64")}`;
+    buffer = Buffer.from(await imgResp.arrayBuffer());
+  } else {
+    throw new Error("OpenAI response missing both b64_json and url");
   }
-  throw new Error("OpenAI response missing both b64_json and url");
+
+  // Upload to R2 under a deterministic, unguessable key. The product id
+  // is already a UUID; using it as the filename means re-generating a
+  // product's image naturally overwrites the old one, so we don't have
+  // to orphan-sweep.
+  const key = buildImageKey(companyId, "products", product.id, "png");
+  return uploadObject({
+    key,
+    body: buffer,
+    contentType: "image/png",
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -145,27 +159,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // We return a lightweight version (no data-URI blob) so the client
-    // doesn't choke on megabytes of JSON.
-    type LightProduct = Omit<Product, "imageUrl"> & { imageUrl: string | null };
-    const updated: LightProduct[] = [];
+    // Now that images live on R2, the row we return already carries
+    // a lightweight public URL -- no need for the legacy lightweight
+    // remapping that stripped base64 blobs.
+    const updated: Product[] = [];
     const errors: Array<{ id: string; name: string; message: string }> = [];
 
     // Process sequentially to avoid hitting OpenAI rate limits and to
-    // keep memory usage predictable (base64 images are large).
+    // keep memory usage predictable.
     for (const product of targets) {
       try {
-        const dataUri = await generateImage(apiKey, product);
+        const publicUrl = await generateImage(apiKey, product, ctx.companyId);
         const result = await db
           .update(products)
-          .set({ imageUrl: dataUri, updatedBy: ctx.userId, updatedAt: new Date() })
+          .set({ imageUrl: publicUrl, updatedBy: ctx.userId, updatedAt: new Date() })
           .where(eq(products.id, product.id))
           .returning();
         if (result[0]) {
-          updated.push({
-            ...result[0],
-            imageUrl: `/api/products/${result[0].id}/image`,
-          });
+          updated.push(result[0]);
         }
       } catch (err) {
         errors.push({

@@ -44,17 +44,16 @@ export async function GET(request: NextRequest) {
       offset,
     });
 
-    // Replace heavyweight data-URI blobs with a lightweight image-
-    // endpoint URL. The browser fetches actual pixels on demand
-    // (with caching) via GET /api/products/[id]/image, which keeps
-    // this JSON response small and fast.
+    // Rows migrated to R2 already carry a public URL on `imageUrl`.
+    // Rows still holding a legacy data-URI blob get rewritten to the
+    // lightweight serve endpoint so the JSON response stays small.
+    // After the R2 backfill sweeps every tenant this `startsWith`
+    // branch is effectively dead code.
     const mapped = result.map((p) => ({
       ...p,
-      imageUrl: p.imageUrl
-        ? p.imageUrl.startsWith("data:")
-          ? `/api/products/${p.id}/image`
-          : p.imageUrl
-        : null,
+      imageUrl: p.imageUrl?.startsWith("data:")
+        ? `/api/products/${p.id}/image`
+        : p.imageUrl ?? null,
     }));
 
     return NextResponse.json({

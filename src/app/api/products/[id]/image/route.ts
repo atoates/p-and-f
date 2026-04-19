@@ -7,10 +7,15 @@ import { requirePermissionApi } from "@/lib/auth/permissions-api";
 /**
  * GET /api/products/[id]/image
  *
- * Serves the product's stored image as a real HTTP image response with
- * caching headers, so the products list endpoint can return a lightweight
- * URL (`/api/products/{id}/image`) instead of inlining megabytes of
- * base64 in JSON.
+ * Legacy-compatible image serve route. Since product images migrated
+ * to Cloudflare R2, the common path here is a 302 redirect straight
+ * to the public R2 URL -- browsers follow the redirect once and then
+ * load from the CDN on every subsequent render.
+ *
+ * The data-URI branch below exists to support any rows that haven't
+ * been backfilled yet. Once `scripts/backfill-product-images-to-r2.ts`
+ * has run against an environment, that branch effectively becomes
+ * dead code and can be removed.
  */
 export async function GET(
   _request: NextRequest,
@@ -31,17 +36,17 @@ export async function GET(
       return new NextResponse(null, { status: 404 });
     }
 
-    const dataUri = row.imageUrl;
+    const stored = row.imageUrl;
 
-    // If it's an actual URL (not a data URI), redirect to it.
-    if (dataUri.startsWith("http://") || dataUri.startsWith("https://")) {
-      return NextResponse.redirect(dataUri);
+    // Fast path: R2 (or any other https URL) -- hand the browser
+    // straight to the CDN.
+    if (stored.startsWith("http://") || stored.startsWith("https://")) {
+      return NextResponse.redirect(stored);
     }
 
-    // Parse the data URI: data:<mime>;base64,<data>
-    const match = dataUri.match(
-      /^data:(image\/[a-z+]+);base64,(.+)$/i
-    );
+    // Legacy path: data URI still in Postgres. Parse and serve inline
+    // so the UI keeps working until the backfill sweeps this row up.
+    const match = stored.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
     if (!match) {
       return new NextResponse(null, { status: 404 });
     }
@@ -54,8 +59,6 @@ export async function GET(
       headers: {
         "Content-Type": contentType,
         "Content-Length": String(buffer.length),
-        // Cache for 7 days in browser / 30 days on CDN. Images change
-        // only when explicitly regenerated, so a long TTL is fine.
         "Cache-Control": "public, max-age=604800, s-maxage=2592000",
       },
     });

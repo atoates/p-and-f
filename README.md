@@ -60,6 +60,7 @@ Copy `.env.example` to `.env` locally; set equivalents in Railway's service Vari
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | optional | Browser key for the Maps JS loader (delivery map + route planner page). Restrict by HTTP referrer. |
 | `ANTHROPIC_API_KEY` | optional | Powers the AI Invoice Scanner and the delivery-schedule suggester. Missing → those endpoints throw at call time. |
 | `OPENAI_API_KEY` | optional | Powers the product image generator in the libraries flow. Missing → "Generate Image" returns an error. |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` | needed for image uploads | Cloudflare R2 credentials. Product AI image generation and (future) proposal mood boards upload here. See [Image storage](#image-storage) below. |
 | `NEXT_PUBLIC_FEATURE_SUBSCRIPTION` | optional | Feature flag. Unset = off. |
 | `ALLOW_PROD_SEED` | optional | Safety override for `db:seed`. Only set if you really mean it. |
 
@@ -184,6 +185,42 @@ Line items can belong to a bundle (`order_items.bundle_id`, `bundle_name`, `base
 ### Rate limiting
 
 `src/lib/rate-limit.ts` is an in-memory sliding-window limiter keyed by IP (or any other string). Currently used on signup. It only holds state in the current process, so horizontal scaling requires moving to Upstash/Redis — documented in the file's header comment.
+
+## Image storage
+
+Product photos, (future) proposal mood boards, and generated PDFs live in **Cloudflare R2** (S3-compatible object storage with zero egress fees). R2 was picked over AWS S3 because bride-facing `/p/[token]` proposal pages get viewed by non-paying users we can't charge for, so egress cost matters.
+
+### One-time setup
+
+1. Cloudflare dashboard → **R2** → **Create bucket**. Pick a short name (`petal-and-prosper-images`) and the **EU jurisdiction** (for UK-GDPR purposes; R2 has no dedicated UK region, EU is the closest).
+2. Bucket settings → **Public access** → enable the `pub-*.r2.dev` subdomain. Copy the URL it generates — that's your `R2_PUBLIC_URL`. Swap in a custom domain later without code changes.
+3. R2 → **Manage API tokens** → **Create API token** → scope to this bucket with "Object Read & Write". Copy the access key ID and secret.
+4. Populate `.env` / Railway env:
+   ```
+   R2_ACCOUNT_ID=<from the R2 dashboard URL>
+   R2_ACCESS_KEY_ID=<from the token you just made>
+   R2_SECRET_ACCESS_KEY=<same>
+   R2_BUCKET=petal-and-prosper-images
+   R2_PUBLIC_URL=https://pub-<hash>.r2.dev
+   ```
+
+### Storage abstraction
+
+`src/lib/storage.ts` exposes `uploadObject({ key, body, contentType })`, `deleteObject(key)`, and `buildImageKey(tenantId, entity, id, ext)`. Keys are prefixed with `tenantId/` so one tenant's URLs can never enumerate another's — the UUID suffix makes the URLs unguessable even though the bucket is public.
+
+If any `R2_*` var is missing, uploads throw at call time rather than silently falling back to data URIs. A half-configured prod instance should fail loudly, not paper over the mis-deploy.
+
+### Backfilling the legacy data URIs
+
+Product images shipped before R2 integration were stored as `data:image/png;base64,...` on `products.image_url`. Run the backfill once per environment after configuring R2:
+
+```bash
+# Dry run first, then for real.
+npx tsx scripts/backfill-product-images-to-r2.ts --dry-run
+npx tsx scripts/backfill-product-images-to-r2.ts
+```
+
+The script skips rows already on http(s) URLs, so it's safe to re-run. `/api/products/[id]/image` and the list endpoint both still tolerate legacy data URIs; once every row is migrated those code paths can be deleted.
 
 ## Database schema
 
