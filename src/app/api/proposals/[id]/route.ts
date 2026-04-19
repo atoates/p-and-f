@@ -26,6 +26,7 @@ export async function GET(
             enquiry: true,
           },
         },
+        moodBoardImages: true,
       },
     });
     if (!proposal) {

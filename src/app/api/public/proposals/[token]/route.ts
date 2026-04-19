@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { proposals, orders, enquiries, companies, orderItems } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import {
+  proposals,
+  orders,
+  enquiries,
+  companies,
+  orderItems,
+  proposalMoodBoardImages,
+} from "@/lib/db/schema";
+import { and, asc, eq } from "drizzle-orm";
 
 /**
  * GET /api/public/proposals/[token]
@@ -56,6 +63,20 @@ export async function GET(
       where: eq(orderItems.orderId, order.id),
     });
 
+    // Mood board images: pulled separately so a proposal with no board
+    // still renders quickly. Ordered by `position` so drag-and-drop
+    // reorders in the editor survive to the bride's view.
+    const moodBoard = await db.query.proposalMoodBoardImages.findMany({
+      where: eq(proposalMoodBoardImages.proposalId, proposal.id),
+      orderBy: asc(proposalMoodBoardImages.position),
+      columns: {
+        id: true,
+        url: true,
+        caption: true,
+        position: true,
+      },
+    });
+
     return NextResponse.json({
       company: company
         ? {
@@ -92,6 +113,7 @@ export async function GET(
         acceptedAt: proposal.acceptedAt,
         rejectedAt: proposal.rejectedAt,
       },
+      moodBoard,
     });
   } catch (error) {
     console.error(

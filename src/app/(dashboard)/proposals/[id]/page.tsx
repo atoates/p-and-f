@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { formatUkDate } from "@/lib/format-date";
 import { proposalStatusColours, formatStatus } from "@/lib/status-colours";
+import { MoodBoardEditor } from "@/components/proposals/mood-board-editor";
 
 interface Proposal {
   id: string;
@@ -381,6 +382,23 @@ export default function ProposalDetailPage() {
           </CardBody>
         </Card>
       )}
+
+      <Card className="mt-6">
+        <CardBody>
+          <div className="mb-3 flex items-baseline justify-between">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Mood board
+            </p>
+            <p className="text-xs text-gray-400">
+              Visual inspiration shown to the bride on the public proposal link.
+            </p>
+          </div>
+          <MoodBoardEditor
+            proposalId={proposal.id}
+            readOnly={proposal.status !== "draft"}
+          />
+        </CardBody>
+      </Card>
     </div>
   );
 }

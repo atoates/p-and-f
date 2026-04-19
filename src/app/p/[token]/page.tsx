@@ -21,6 +21,7 @@
  */
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   formatUkDate,
@@ -59,6 +60,12 @@ interface PublicProposalData {
     acceptedAt?: string | null;
     rejectedAt?: string | null;
   };
+  moodBoard?: Array<{
+    id: string;
+    url: string;
+    caption?: string | null;
+    position: number;
+  }>;
 }
 
 function formatPrice(value?: string | null) {
@@ -226,6 +233,38 @@ export default function PublicProposalPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {data.moodBoard && data.moodBoard.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 mb-3">
+                Inspiration
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {data.moodBoard.map((img) => (
+                  <figure
+                    key={img.id}
+                    className="overflow-hidden rounded-md border border-gray-200 bg-gray-50"
+                  >
+                    <div className="relative aspect-square">
+                      <Image
+                        src={img.url}
+                        alt={img.caption ?? "Inspiration image"}
+                        fill
+                        sizes="(max-width: 640px) 50vw, 33vw"
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
+                    {img.caption && (
+                      <figcaption className="p-2 text-xs text-gray-600">
+                        {img.caption}
+                      </figcaption>
+                    )}
+                  </figure>
+                ))}
+              </div>
             </div>
           )}
 

@@ -368,6 +368,34 @@ export const proposals = pgTable(
   }
 );
 
+// Visual inspiration images attached to a proposal. The florist
+// uploads these into the proposal editor; the bride sees them on the
+// public /p/[token] page alongside the line items and total. Storage
+// lives on Cloudflare R2; only the public URL is kept in the DB.
+export const proposalMoodBoardImages = pgTable(
+  "proposal_mood_board_images",
+  {
+    id: text("id").primaryKey(),
+    proposalId: text("proposal_id")
+      .notNull()
+      .references(() => proposals.id, { onDelete: "cascade" }),
+    // Absolute public URL on the R2 bucket. We don't keep the raw key
+    // separately -- it's derivable from the URL via
+    // `keyFromPublicUrl()` in `lib/storage.ts`.
+    url: text("url").notNull(),
+    // Optional caption shown under the image. Free-form text.
+    caption: text("caption"),
+    // Display order within the board. Lower = earlier. Kept explicit
+    // rather than using insert order so reordering via drag-and-drop
+    // just updates this column.
+    position: integer("position").notNull().default(0),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow(),
+  }
+);
+
 export const invoices = pgTable(
   "invoices",
   {
@@ -853,7 +881,7 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   }),
 }));
 
-export const proposalsRelations = relations(proposals, ({ one }) => ({
+export const proposalsRelations = relations(proposals, ({ one, many }) => ({
   company: one(companies, {
     fields: [proposals.companyId],
     references: [companies.id],
@@ -862,7 +890,18 @@ export const proposalsRelations = relations(proposals, ({ one }) => ({
     fields: [proposals.orderId],
     references: [orders.id],
   }),
+  moodBoardImages: many(proposalMoodBoardImages),
 }));
+
+export const proposalMoodBoardImagesRelations = relations(
+  proposalMoodBoardImages,
+  ({ one }) => ({
+    proposal: one(proposals, {
+      fields: [proposalMoodBoardImages.proposalId],
+      references: [proposals.id],
+    }),
+  })
+);
 
 export const invoicesRelations = relations(invoices, ({ one }) => ({
   company: one(companies, {
