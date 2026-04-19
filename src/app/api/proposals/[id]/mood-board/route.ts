@@ -107,6 +107,15 @@ export async function POST(
 
   // Find the current max position so new uploads append to the end
   // rather than colliding on position=0.
+  //
+  // Concurrency note: two simultaneous multi-file uploads for the
+  // same proposal can read the same max, so the second upload
+  // overlaps positions with the first. At the currently-expected
+  // volume (a florist uploading a handful of inspiration photos for
+  // a single bride) this is vanishingly unlikely and the UI tolerates
+  // duplicate positions (same-position images just order by insert
+  // time). If we need stronger guarantees later, move this into a
+  // row-locking transaction or switch to a serial sequence column.
   const [{ maxPos }] = await db
     .select({
       maxPos: sql<number | null>`MAX(${proposalMoodBoardImages.position})`,

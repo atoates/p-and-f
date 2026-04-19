@@ -158,15 +158,30 @@ export async function autoGenerateWholesaleOrders(
 
   // Pull the tenant's products once so we match without issuing
   // O(n) lookups. Case-folded name -> { supplier, productId, cost }.
+  //
+  // Ordering note: when a tenant has two products that normalise to
+  // the same name (e.g. "White Rose" and "WHITE ROSE "), we want a
+  // deterministic winner. Ordering the source query by created_at
+  // ascending and then `if (!byName.has(key))` to set-once means the
+  // earliest-created product wins every time. Any better dedup
+  // (marking one as canonical, merging the rows) is a library
+  // cleanup task we can't do from here.
   const tenantProducts = await (tx as typeof dbType)
     .select({
       id: products.id,
       name: products.name,
       supplier: products.supplier,
       wholesalePrice: products.wholesalePrice,
+      createdAt: products.createdAt,
     })
     .from(products)
     .where(eq(products.companyId, ctx.companyId));
+
+  tenantProducts.sort((a, b) => {
+    const aTime = a.createdAt?.getTime() ?? 0;
+    const bTime = b.createdAt?.getTime() ?? 0;
+    return aTime - bTime;
+  });
 
   const byName = new Map<
     string,
@@ -177,11 +192,14 @@ export async function autoGenerateWholesaleOrders(
     }
   >();
   for (const p of tenantProducts) {
-    byName.set(p.name.trim().toLowerCase(), {
-      id: p.id,
-      supplier: p.supplier,
-      wholesalePrice: p.wholesalePrice,
-    });
+    const key = p.name.trim().toLowerCase();
+    if (!byName.has(key)) {
+      byName.set(key, {
+        id: p.id,
+        supplier: p.supplier,
+        wholesalePrice: p.wholesalePrice,
+      });
+    }
   }
 
   // Group order items by supplier. Empty/missing supplier -> "Unassigned"

@@ -136,25 +136,13 @@ export async function POST(
       if (!bodyHtml) bodyHtml = rendered.html;
     }
 
-    const sendResult = await sendEmail({
-      to: recipient,
-      subject,
-      html: bodyHtml,
-      replyTo: company?.email ?? undefined,
-    });
-
-    if (!sendResult.ok) {
-      return NextResponse.json(
-        { error: sendResult.error || "Failed to send email" },
-        { status: 502 }
-      );
-    }
-
-    // Flip the row to `sent` and pin a new version of the proposal
-    // in one transaction. The version captures what the bride is
-    // actually receiving -- later edits to the order, items, or
-    // mood board won't mutate this snapshot, so a future version-3
-    // can accurately diff against this version-2.
+    // Commit the DB changes FIRST, email second. If the DB write
+    // fails, the bride hasn't been emailed yet so nothing is
+    // inconsistent. If the email fails after the DB commits, the
+    // florist retries the send; the public link is already valid and
+    // the proposal is marked sent, which is acceptable. (Previously
+    // we sent email first, which meant an email could go out even
+    // when the DB update failed -- inconsistent state by surprise.)
     const now = new Date();
     const { updated, version } = await db.transaction(async (tx) => {
       const [row] = await tx
@@ -180,6 +168,29 @@ export async function POST(
 
       return { updated: row, version: pinned };
     });
+
+    const sendResult = await sendEmail({
+      to: recipient,
+      subject,
+      html: bodyHtml,
+      replyTo: company?.email ?? undefined,
+    });
+
+    // Email failure after a successful DB write: surface a 502 so
+    // the florist knows delivery didn't happen, but the proposal is
+    // already marked sent in our system and has a valid public link
+    // they can share manually in the meantime.
+    if (!sendResult.ok) {
+      return NextResponse.json(
+        {
+          error: sendResult.error || "Failed to send email",
+          proposal: updated,
+          publicLink,
+          emailFailed: true,
+        },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       proposal: updated,
