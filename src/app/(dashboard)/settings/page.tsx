@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/card";
 import { CompanyTab } from "@/components/settings/company-tab";
 import { PricingTab } from "@/components/settings/pricing-tab";
@@ -57,8 +58,26 @@ interface Address {
   country?: string | null;
 }
 
+const VALID_TABS: SettingsTab[] = [
+  "company",
+  "pricing",
+  "proposal",
+  "invoice",
+  "addresses",
+];
+
+function isTab(v: string | null): v is SettingsTab {
+  return !!v && (VALID_TABS as string[]).includes(v);
+}
+
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("company");
+  // Seed from the URL so `/settings?tab=pricing` deep-links, e.g.
+  // from the onboarding checklist and the /pricing -> redirect.
+  const searchParams = useSearchParams();
+  const initialTab = searchParams?.get("tab");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    isTab(initialTab) ? initialTab : "company"
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

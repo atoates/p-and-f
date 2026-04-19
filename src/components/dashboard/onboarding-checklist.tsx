@@ -32,7 +32,7 @@ const steps: Step[] = [
     title: "Set your pricing rules",
     description:
       "Markup, flower buffer, fuel and staff costs drive every quote.",
-    href: "/pricing",
+    href: "/settings?tab=pricing",
     cta: "Open pricing",
   },
   {

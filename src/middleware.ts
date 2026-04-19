@@ -9,6 +9,9 @@ export const config = {
     "/home/:path*",
     "/enquiries/:path*",
     "/orders/:path*",
+    // /pricing is now a redirect to /settings?tab=pricing, but we
+    // still gate it so unauthenticated users hit the login flow
+    // before the redirect fires.
     "/pricing/:path*",
     "/proposals/:path*",
     "/invoices/:path*",
