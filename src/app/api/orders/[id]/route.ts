@@ -9,6 +9,7 @@ import {
   priceItemForCompany,
   recomputeOrderTotal,
 } from "@/lib/pricing/server";
+import { autoGenerateProductionSchedule } from "@/lib/order-confirm-hooks";
 
 export async function GET(
   _request: NextRequest,
@@ -81,6 +82,19 @@ export async function PUT(
     const rules = await loadRules(ctx.companyId);
 
     const updated = await db.transaction(async (tx) => {
+      // Read the pre-update status so we can fire the confirm hooks
+      // only on a true transition into 'confirmed', not on every save
+      // while already-confirmed. Also serves as a tenant-scoped
+      // existence check before we mutate anything.
+      const previous = await tx.query.orders.findFirst({
+        where: and(
+          eq(orders.id, params.id),
+          eq(orders.companyId, ctx.companyId)
+        ),
+        columns: { id: true, status: true },
+      });
+      if (!previous) return null;
+
       // Update the order, scoped to tenant
       const updateResult = await tx
         .update(orders)
@@ -185,6 +199,20 @@ export async function PUT(
         // the authoritative set of items rather than trusting the
         // totalPrice in the request body.
         await recomputeOrderTotal(tx, params.id, ctx.companyId);
+      }
+
+      // Fire confirmation hooks on the draft -> confirmed transition.
+      // We run them inside the same transaction so the whole confirm
+      // (status flip + downstream artefacts) is atomic.
+      if (
+        data.status === "confirmed" &&
+        previous.status !== "confirmed"
+      ) {
+        await autoGenerateProductionSchedule(tx, {
+          orderId: params.id,
+          companyId: ctx.companyId,
+          userId: ctx.userId,
+        });
       }
 
       return tx.query.orders.findFirst({
