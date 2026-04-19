@@ -6,6 +6,7 @@ import { requirePermissionApi } from "@/lib/auth/permissions-api";
 import { parseJsonBody, proposalSendSchema } from "@/lib/validators/api";
 import { sendEmail } from "@/lib/email/send";
 import { renderProposalEmail } from "@/lib/email/templates";
+import { pinProposalVersion } from "@/lib/proposal-snapshot";
 import crypto from "crypto";
 
 /**
@@ -149,29 +150,46 @@ export async function POST(
       );
     }
 
+    // Flip the row to `sent` and pin a new version of the proposal
+    // in one transaction. The version captures what the bride is
+    // actually receiving -- later edits to the order, items, or
+    // mood board won't mutate this snapshot, so a future version-3
+    // can accurately diff against this version-2.
     const now = new Date();
-    const [updated] = await db
-      .update(proposals)
-      .set({
-        status: "sent",
-        sentAt: now,
-        subject,
-        bodyHtml,
-        publicToken,
-        updatedBy: ctx.userId,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(proposals.id, params.id),
-          eq(proposals.companyId, ctx.companyId)
+    const { updated, version } = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(proposals)
+        .set({
+          status: "sent",
+          sentAt: now,
+          subject,
+          bodyHtml,
+          publicToken,
+          updatedBy: ctx.userId,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(proposals.id, params.id),
+            eq(proposals.companyId, ctx.companyId)
+          )
         )
-      )
-      .returning();
+        .returning();
+
+      const pinned = await pinProposalVersion(tx, params.id, ctx.userId);
+
+      return { updated: row, version: pinned };
+    });
 
     return NextResponse.json({
       proposal: updated,
       publicLink,
+      version: version
+        ? {
+            versionNumber: version.versionNumber,
+            changeSummary: version.changeSummary,
+          }
+        : null,
       provider: sendResult.provider,
       messageId: sendResult.messageId,
     });

@@ -20,6 +20,7 @@ import {
 import { formatUkDate } from "@/lib/format-date";
 import { proposalStatusColours, formatStatus } from "@/lib/status-colours";
 import { MoodBoardEditor } from "@/components/proposals/mood-board-editor";
+import { ProposalVersionsTimeline } from "@/components/proposals/versions-timeline";
 
 interface Proposal {
   id: string;
@@ -396,6 +397,20 @@ export default function ProposalDetailPage() {
           <MoodBoardEditor
             proposalId={proposal.id}
             readOnly={proposal.status !== "draft"}
+          />
+        </CardBody>
+      </Card>
+
+      <Card className="mt-6">
+        <CardBody>
+          <div className="mb-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Version history
+            </p>
+          </div>
+          <ProposalVersionsTimeline
+            proposalId={proposal.id}
+            readOnly={proposal.status === "accepted" || proposal.status === "rejected"}
           />
         </CardBody>
       </Card>

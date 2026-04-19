@@ -6,6 +6,7 @@ import {
   decimal,
   timestamp,
   boolean,
+  jsonb,
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -365,6 +366,36 @@ export const proposals = pgTable(
     }),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
+  }
+);
+
+// Point-in-time snapshots of a proposal's state (order header +
+// line items + mood board). A new row is pinned every time the
+// proposal is sent to the bride, so the florist can see what changed
+// between iterations without having to keep separate PDFs. See
+// src/lib/proposal-snapshot.ts for the exact shape stored in
+// `snapshot_json` and for the diff logic that produces
+// `change_summary`.
+export const proposalVersions = pgTable(
+  "proposal_versions",
+  {
+    id: text("id").primaryKey(),
+    proposalId: text("proposal_id")
+      .notNull()
+      .references(() => proposals.id, { onDelete: "cascade" }),
+    versionNumber: integer("version_number").notNull(),
+    // Denormalised frozen payload. Kept as jsonb so we can inspect
+    // snapshots in Postgres directly during debugging, and so future
+    // code can query into them without a JSON parse round-trip.
+    snapshotJson: jsonb("snapshot_json").notNull(),
+    // Auto-generated human summary of what changed vs the previous
+    // version ("added 2 line items; total: £120 -> £165"). Editable
+    // by the operator if they want to be more specific.
+    changeSummary: text("change_summary"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow(),
   }
 );
 
@@ -891,6 +922,7 @@ export const proposalsRelations = relations(proposals, ({ one, many }) => ({
     references: [orders.id],
   }),
   moodBoardImages: many(proposalMoodBoardImages),
+  versions: many(proposalVersions),
 }));
 
 export const proposalMoodBoardImagesRelations = relations(
@@ -898,6 +930,16 @@ export const proposalMoodBoardImagesRelations = relations(
   ({ one }) => ({
     proposal: one(proposals, {
       fields: [proposalMoodBoardImages.proposalId],
+      references: [proposals.id],
+    }),
+  })
+);
+
+export const proposalVersionsRelations = relations(
+  proposalVersions,
+  ({ one }) => ({
+    proposal: one(proposals, {
+      fields: [proposalVersions.proposalId],
       references: [proposals.id],
     }),
   })
